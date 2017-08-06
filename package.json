@@ -1,0 +1,11 @@
+{
+  "name": "trust library",
+  "description": "Library used by trust products",
+  "version": "0.0.1",
+  "devDependencies": {
+    "mocha": "*"
+  },
+  "dependencies": {
+    "zeppelin-solidity": "^1.2.0"
+  }
+}
