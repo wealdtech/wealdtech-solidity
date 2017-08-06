@@ -22,7 +22,7 @@ contract Owned {
      * @dev A modifier that requires the message sender to be the current
      * contract owner.
      */
-    modifier onlyContractOwner {
+    modifier ifContractOwner {
         require(msg.sender == contractOwner);
         _;
     }
@@ -31,7 +31,7 @@ contract Owned {
      * @dev A modifier that requires the message sender to be the pending
      * contract owner.
      */
-    modifier onlyPendingContractOwner() {
+    modifier ifPendingContractOwner() {
         require(msg.sender == pendingContractOwner);
         _;
     }
@@ -51,7 +51,7 @@ contract Owned {
      * any one time.  If another call is made to this function it will
      * invalidate any prior offers.
      */
-    function offerContractOwnership(address newContractOwner) public onlyContractOwner {
+    function offerContractOwnership(address newContractOwner) public ifContractOwner {
         pendingContractOwner = newContractOwner;
     }
 
@@ -60,7 +60,7 @@ contract Owned {
      * `offerContractOwnership`.  This will change ownership of the
      * contract.
      */
-    function claimContractOwnership() public onlyPendingContractOwner {
+    function claimContractOwnership() public ifPendingContractOwner {
         contractOwner = pendingContractOwner;
         pendingContractOwner = 0x0;
     }

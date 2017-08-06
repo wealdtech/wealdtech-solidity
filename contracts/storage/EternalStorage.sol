@@ -1,3 +1,6 @@
+pragma solidity ^0.4.11;
+
+
 contract EternalStorage{
     mapping(bytes32 => uint256) UInt256Storage;
 

@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-import "./Owned.sol";
+import "../auth/Owned.sol";
 
 
 /**
@@ -17,7 +17,7 @@ contract Pausable is Owned {
   /**
    * @dev modifier to allow actions only when the contract IS paused
    */
-  modifier whenNotPaused() {
+  modifier ifNotPaused() {
     require(!paused);
     _;
   }
@@ -25,7 +25,7 @@ contract Pausable is Owned {
   /**
    * @dev modifier to allow actions only when the contract IS NOT paused
    */
-  modifier whenPaused {
+  modifier ifPaused {
     require(paused);
     _;
   }
@@ -33,7 +33,7 @@ contract Pausable is Owned {
   /**
    * @dev called by the owner to pause, triggers stopped state
    */
-  function pause() onlyContractOwner whenNotPaused returns (bool) {
+  function pause() public ifContractOwner ifNotPaused returns (bool) {
     paused = true;
     Pause();
     return true;
@@ -42,7 +42,7 @@ contract Pausable is Owned {
   /**
    * @dev called by the owner to unpause, returns to normal state
    */
-  function unpause() onlyContractOwner whenPaused returns (bool) {
+  function unpause() public ifContractOwner ifPaused returns (bool) {
     paused = false;
     Unpause();
     return true;

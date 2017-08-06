@@ -4,14 +4,14 @@ pragma solidity ^0.4.11;
 /**
  * @title Permissioned
  * Permission structure and modifiers.  Permissions are described by the
- * tuple (address, permission id).  The permission ID of 1 is reserved for
- * altering permissions within this contract.
+ * tuple (address, permission id).  The permission ID of 0xffffffff is
+ * reserved for altering permissions within this contract.
  */
 contract Permissioned {
-    mapping(address=>mapping(uint8=>bool)) permissions;
+    mapping(address=>mapping(uint32=>bool)) permissions;
 
     // The constant for the permission to modify permissions
-    uint8 constant PERM_MODIFY_PERMS = 1;
+    uint32 constant PERM_MODIFY_PERMS = 0xffffffff;
 
     /**
      * @dev The Permissioned constructor gives the initial contract owner the
@@ -25,7 +25,7 @@ contract Permissioned {
      * @dev A modifier that requires the message sender to be the current
      * contract owner.
      */
-    modifier onlyIfPermitted(address addr, uint8 permission) {
+    modifier ifPermitted(address addr, uint32 permission) {
         require(permissions[addr][permission]);
         _;
     }
@@ -33,7 +33,7 @@ contract Permissioned {
     /**
      * @dev Set or reset a permission.
      */
-    function setPermission(address addr, uint8 permission, bool allowed) onlyIfPermitted(msg.sender, PERM_MODIFY_PERMS) {
+    function setPermission(address addr, uint32 permission, bool allowed) ifPermitted(msg.sender, PERM_MODIFY_PERMS) {
         permissions[addr][permission] = allowed;
     }
 }
