@@ -6,6 +6,8 @@ pragma solidity ^0.4.11;
  * Permission structure and modifiers.  Permissions are described by the
  * tuple (address, permission id).  The permission ID of 0xffffffff is
  * reserved for altering permissions within this contract.
+ * Note that any address allowed to modify permissions is implicitly
+ * granted all permissions.
  */
 contract Permissioned {
     mapping(address=>mapping(uint32=>bool)) permissions;
@@ -26,7 +28,7 @@ contract Permissioned {
      * contract owner.
      */
     modifier ifPermitted(address addr, uint32 permission) {
-        require(permissions[addr][permission]);
+        require(permissions[addr][permission] || permissions[addr][PERM_MODIFY_PERMS]);
         _;
     }
     
