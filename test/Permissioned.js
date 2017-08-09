@@ -8,9 +8,9 @@ const PERMS_SET_BOOL = 3;
 
 contract('Permissioned', accounts => {
   it('cannot access a method without permission', async function() {
-    const Permissioned = await PermissionedTest1.new();
+    const instance = await PermissionedTest1.new();
     try {
-        await Permissioned.setBool(true, {from: accounts[1]});
+        await instance.setBool(true, {from: accounts[1]});
         assert.fail();
     } catch(error) {
         assertJump(error);
@@ -18,15 +18,15 @@ contract('Permissioned', accounts => {
   });
 
   it('can access a method with permission', async function() {
-    const Permissioned = await PermissionedTest1.new();
-    await Permissioned.setPermission(accounts[1], PERMS_SET_BOOL, true);
-    await Permissioned.setBool(true, {from: accounts[1]});
+    const instance = await PermissionedTest1.new();
+    await instance.setPermission(accounts[1], PERMS_SET_BOOL, true);
+    await instance.setBool(true, {from: accounts[1]});
   });
 
   it('does not leak permissions across accounts', async function() {
-    const Permissioned = await PermissionedTest1.new();
+    const instance = await PermissionedTest1.new();
     try {
-        await Permissioned.setBool(true, {from: accounts[2]});
+        await instance.setBool(true, {from: accounts[2]});
         assert.fail();
     } catch(error) {
         assertJump(error);
@@ -34,9 +34,9 @@ contract('Permissioned', accounts => {
   });
 
   it('does not leak permissions across permission IDs', async function() {
-    const Permissioned = await PermissionedTest1.new();
+    const instance = await PermissionedTest1.new();
     try {
-        await Permissioned.setInt(1, {from: accounts[1]});
+        await instance.setInt(1, {from: accounts[1]});
         assert.fail();
     } catch(error) {
         assertJump(error);
@@ -44,10 +44,10 @@ contract('Permissioned', accounts => {
   });
 
   it('can have permissions revoked', async function() {
-    const Permissioned = await PermissionedTest1.new();
-    await Permissioned.setPermission(accounts[1], PERMS_SET_BOOL, false);
+    const instance = await PermissionedTest1.new();
+    await instance.setPermission(accounts[1], PERMS_SET_BOOL, false);
     try {
-        await Permissioned.setBool(true, {from: accounts[1]});
+        await instance.setBool(true, {from: accounts[1]});
         assert.fail();
     } catch(error) {
         assertJump(error);
@@ -55,9 +55,9 @@ contract('Permissioned', accounts => {
   });
 
   it('does not allow permissions to be set by an unauthorised user', async function() {
-    const Permissioned = await PermissionedTest1.new();
+    const instance = await PermissionedTest1.new();
     try {
-        await Permissioned.setPermission(accounts[0], PERMS_SET_BOOL, true, {from: accounts[1]});
+        await instance.setPermission(accounts[0], PERMS_SET_BOOL, true, {from: accounts[1]});
         assert.fail();
     } catch(error) {
         assertJump(error);

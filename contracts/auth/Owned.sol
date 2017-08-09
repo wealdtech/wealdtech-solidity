@@ -53,6 +53,7 @@ contract Owned {
      */
     function offerContractOwnership(address newContractOwner) public ifContractOwner {
         pendingContractOwner = newContractOwner;
+        // TODO add events
     }
 
     /**
