@@ -1,2 +1,8 @@
 # Vim
-*.sw*
+*.sw?
+
+# Truffle
+build
+
+# Node
+node_modules

@@ -1,6 +1,6 @@
 {
-  "name": "trust library",
-  "description": "Library used by trust products",
+  "name": "trust-library",
+  "description": "Library of common code used by Trust",
   "version": "0.0.1",
   "devDependencies": {
     "mocha": "*"
