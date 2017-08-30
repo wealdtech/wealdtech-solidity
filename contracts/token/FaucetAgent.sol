@@ -43,7 +43,7 @@ contract FaucetAgent is TokenAgent {
      * @dev attempt to obtain tokens depending on the amount of funds
      * supplied.
      */
-    function obtain() public payable returns (uint256) {
+    function () public payable {
         var amount = msg.value.mul(tokensPerWei);
         require(amount > 0);
         token.transfer(msg.sender, amount);
