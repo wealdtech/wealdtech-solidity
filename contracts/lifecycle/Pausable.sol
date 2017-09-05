@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-// Copyright © 2017 Jim McDonald
+// Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,19 +13,34 @@ pragma solidity ^0.4.11;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import "../auth/Owned.sol";
+import "../auth/Permissioned.sol";
 
 
 /**
  * @title Pausable
- * @dev Base contract which allows children to implement an emergency stop mechanism.
- * Based on the Open Zeppelin Pausable
+ *        Pausable provides a toggle for the operation of contract functions.
+ *        This is accomplished through a combination of functions and
+ *        modifiers.  The functions pause() and unpause() toggle the internal
+ *        flag, and the modifiers ifPaused and ifNotPaused throw if the flag
+ *        is not in the correct state.
+ * 
+ *        Calling pause() and unpause() requires the caller to have the
+ *        PERM_PAUSE permission.
+ *
+ *        Note that an attempt to pause() an already-paused contract, or to
+ *        unpause() an unpaused contract, will throw.
+ * @author Jim McDonald
+ * @notice If you use this contract please consider donating some Ether or
+ *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
+ *         development of these and future contracts
  */
-contract Pausable is Owned {
+contract Pausable is Permissioned {
     event Pause();
     event Unpause();
 
     bool public paused = false;
+
+    bytes32 internal constant PERM_PAUSE = keccak256("_pausable");
 
     /**
      * @dev modifier to allow actions only when the contract IS paused
@@ -46,7 +61,7 @@ contract Pausable is Owned {
     /**
      * @dev called by the owner to pause, triggers stopped state
      */
-    function pause() public ifContractOwner ifNotPaused returns (bool) {
+    function pause() public ifPermitted(msg.sender, PERM_PAUSE) ifNotPaused returns (bool) {
         paused = true;
         Pause();
         return true;
@@ -55,7 +70,7 @@ contract Pausable is Owned {
     /**
      * @dev called by the owner to unpause, returns to normal state
      */
-    function unpause() public ifContractOwner ifPaused returns (bool) {
+    function unpause() public ifPermitted(msg.sender, PERM_PAUSE) ifPaused returns (bool) {
         paused = false;
         Unpause();
         return true;

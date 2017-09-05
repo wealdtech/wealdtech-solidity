@@ -1,9 +1,10 @@
 {
-  "name": "trust-library",
-  "description": "Library of common code used by Trust",
+  "name": "wealdtech-solidity",
+  "description": "Contracts provided by Wealdtech",
   "version": "0.0.1",
   "devDependencies": {
-    "mocha": "*"
+    "mocha": "*",
+    "solidity-sha3": "^0.4.1"
   },
   "dependencies": {
     "zeppelin-solidity": "^1.2.0"

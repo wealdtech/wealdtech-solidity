@@ -1,7 +1,7 @@
 pragma solidity ^0.4.11;
 
 
-// Copyright © 2017 Jim McDonald
+// Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,7 +13,6 @@ pragma solidity ^0.4.11;
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 
 // Important parts of the ENS registry contract
 contract RegistryRef {
@@ -29,24 +28,28 @@ contract ReverseRegistrarRef {
 
 /**
  * @title ENSReverseRegister
- * ENS resolves names to addresses, and addresses to names.  But to set the
- * resolution from address to name the transaction must come from the address
- * in question.  This function sets the reverse resolution as part of the
- * contract initialisation.
+ *        ENS resolves names to addresses, and addresses to names.  But to set
+ *        the resolution from address to name the transaction must come from
+ *        the address in question.  This contract sets the reverse resolution as
+ *        part of the contract initialisation.
  *
- * To use this your code should inherit this contract and call it in its
- * constructor, for example:
+ *        To use this your code should inherit this contract and provide the
+ *        appropriate arguments in its constructor, for example:
  *
- *    contract MyContract is ENSReverseRegister {
- *        ...
- *        MyContract(address ens) ENSReverseRegister(ens, "mycontract.eth") {
- *            ...
- *        }
- *    }
+ *            contract MyContract is ENSReverseRegister {
+ *                ...
+ *                MyContract(address ens) ENSReverseRegister(ens, "mycontract.eth") {
+ *                    ...
+ *                }
+ *            }
  *
- * Note that for this to work your contract must be given the address of the
- * ENS registry.  If this is not supplied then this code will not run (but
- * will not throw).
+ *        Note that for this to work your contract must be given the address of
+ *        the ENS registry.  If this is not supplied then this code will not run
+ *        and the reverse entry will not be set in ENS (but it will not throw).
+ * @author Jim McDonald
+ * @notice If you use this contract please consider donating some Ether or
+ *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
+ *         development of these and future contracts
  */
 contract ENSReverseRegister {
     /**

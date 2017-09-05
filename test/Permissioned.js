@@ -3,8 +3,10 @@
 const assertJump = require('./helpers/assertJump');
 const PermissionedTest1 = artifacts.require('samplecontracts/PermissionedTest1.sol');
 
-const PERMS_SET_INT = 2;
-const PERMS_SET_BOOL = 3;
+const sha3 = require('solidity-sha3').default;
+
+const PERMS_SET_INT = sha3('permissioned: set int');
+const PERMS_SET_BOOL = sha3('permissioned: set bool');
 
 contract('Permissioned', accounts => {
   it('cannot access a method without permission', async function() {

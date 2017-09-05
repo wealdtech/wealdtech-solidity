@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-// Copyright © 2017 Jim McDonald
+// Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -18,13 +18,22 @@ import "../auth/Permissioned.sol";
 
 /**
  * @title PermissionedStorage
- * Permissioned storage is a general-purpose storage contract holding data
- * that can be set by allowed parties.
- * Note that permissions are all-or-nothing, so this contract should not be
- * shared between multiple parties that might have differing permissions.
+ *        Permissioned storage is a general-purpose storage contract holding
+ *        data that can be set by allowed parties.
+ *
+ *        Calling set*() requires the caller to have the PERM_WRITE
+ *        permission.
+ *
+ *        Note that permissions are all-or-nothing, so this contract should not
+ *        be shared between multiple parties that might have differing
+ *        permissions.
+ * @author Jim McDonald
+ * @notice If you use this contract please consider donating some Ether or
+ *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
+ *         development of these and future contracts
  */
 contract PermissionedStorage is Permissioned {
-    uint32 constant public PERM_WRITE = 0x85b20001;
+    bytes32 constant public PERM_WRITE = keccak256("permissionedstorage: write");
 
     mapping(bytes32 => uint256) UInt256Storage;
 

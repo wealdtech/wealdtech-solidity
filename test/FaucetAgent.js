@@ -5,6 +5,8 @@ const FaucetAgent = artifacts.require('./token/FaucetAgent.sol');
 const TestToken = artifacts.require('./samplecontracts/TestToken.sol');
 const ERC20 = artifacts.require('../node_modules/zeppelin-solidity/contracts/token/ERC20.sol');
 
+const sha3 = require('solidity-sha3').default;
+
 contract('FaucetAgent', accounts => {
     const tokenOwner = accounts[0];
     const faucetOwner = accounts[1];
@@ -29,7 +31,7 @@ contract('FaucetAgent', accounts => {
 
     it ('rejects requests for too many tokens', async () => {
         try {
-            await faucet.obtain({from: requestor, value: 101});
+            await faucet.sendTransaction({from: requestor, value: 101});
             assert.fail();
         } catch (error) {
             assertJump(error);
@@ -37,13 +39,13 @@ contract('FaucetAgent', accounts => {
     });
 
     it ('can exchange Ether for tokens', async () => {
-        const tx = await faucet.obtain({from: requestor, value: 10});
+        const tx = await faucet.sendTransaction({from: requestor, value: 10});
         const tokens = await token.balanceOf(requestor);
         assert.equal(tokens, 100);
     });
 
     it ('can be drained', async () => {
-        await faucet.obtain({from: requestor, value: 90});
+        await faucet.sendTransaction({from: requestor, value: 90});
         var active = await faucet.active();
         assert.equal(active, false);
     });

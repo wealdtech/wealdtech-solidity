@@ -1,7 +1,6 @@
 pragma solidity ^0.4.11;
 
-
-// Copyright © 2017 Jim McDonald
+// Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,14 +13,21 @@ pragma solidity ^0.4.11;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import './ERC20.sol';
+
 
 /**
  * @title TokenAgent
- * An agent that handles sales of tokens
+ *        TokenAgent is an abstract contract that issues tokens from an ERC-20
+ *        source.
+ * @author Jim McDonald
+ * @notice If you use this contract please consider donating some Ether or
+ *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
+ *         development of these and future contracts
  */
 contract TokenAgent {
-    // The address of the token being sold
-    address token;
+    // The token being sold
+    ERC20 token;
 
     /**
      * @dev active states if the agent is currently active.
@@ -32,10 +38,4 @@ contract TokenAgent {
      * @dev provide the number of tokens available.
      */
     function tokensAvailable() public constant returns (uint256);
-
-    /**
-     * @dev attempt to obtain tokens depending on the amount of funds
-     * supplied.
-     */
-    function obtain() public payable returns (uint256);
 }

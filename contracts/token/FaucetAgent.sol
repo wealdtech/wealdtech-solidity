@@ -1,6 +1,6 @@
 pragma solidity ^0.4.11;
 
-// Copyright © 2017 Jim McDonald
+// Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -14,20 +14,20 @@ pragma solidity ^0.4.11;
 // limitations under the License.
 
 import './TokenAgent.sol';
-import '../../node_modules/zeppelin-solidity/contracts/token/ERC20.sol';
+import './ERC20.sol';
 import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 
 
 /**
  * @title FaucetAgent
- * A simple agent that sells all tokens that it has at a fixed exchange
- * rate
+ *        A simple token agent that sells its tokens at a fixed exchange rate.
+ * @author Jim McDonald
+ * @notice If you use this contract please consider donating some Ether or
+ *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
+ *         development of these and future contracts
  */
 contract FaucetAgent is TokenAgent {
     using SafeMath for uint256;
-
-    // The token that the agent is selling
-    ERC20 token;
 
     // The number of tokens per Wei.
     uint256 tokensPerWei;
@@ -59,6 +59,7 @@ contract FaucetAgent is TokenAgent {
     function () public payable {
         var amount = msg.value.mul(tokensPerWei);
         require(amount > 0);
+        require(amount <= tokensAvailable());
         token.transfer(msg.sender, amount);
     }
 }
