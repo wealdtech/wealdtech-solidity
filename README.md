@@ -36,10 +36,6 @@ Redirectable provides a mechanism for contracts to be able to provide potential 
 
 ITokenStore is the interface for storing tokens as part of a token.
 
-### IPermissionedTokenStore
-
-IPermissionedTokenStore is a simple extension of ITokenStore that locks all operations behind permissions.  
-
 ### TokenStore
 
 TokenStore provides permissioned storage for an ERC-20 contract separate from the contract itself.  This separation of token logic and storage allows upgrades to token functionality without requiring expensive copying of the token allocation information.

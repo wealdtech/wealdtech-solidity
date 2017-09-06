@@ -14,7 +14,7 @@ pragma solidity ^0.4.11;
 // limitations under the License.
 
 import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
-import './IPermissionedTokenStore.sol';
+import './ITokenStore.sol';
 
 
 /**
@@ -47,7 +47,7 @@ import './IPermissionedTokenStore.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract SimpleTokenStore is IPermissionedTokenStore {
+contract SimpleTokenStore is ITokenStore {
     using SafeMath for uint256;
 
     // Keep track of balances and allowances

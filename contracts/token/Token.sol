@@ -4,7 +4,7 @@ import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 
 import '../lifecycle/Pausable.sol';
 import '../lifecycle/Redirectable.sol';
-import './IPermissionedTokenStore.sol';
+import './ITokenStore.sol';
 import './SimpleTokenStore.sol';
 import './IERC20.sol';
 
@@ -47,7 +47,7 @@ contract Token is IERC20, Pausable, Redirectable {
     using SafeMath for uint256;
 
     // The store for this token's definition, allowances and allocations
-    IPermissionedTokenStore public store;
+    ITokenStore public store;
 
     // The mask for the address as part of a uint256 for bulkTransfer()
     uint256 private constant ADDRESS_MASK = 0x00ffffffffffffffffffffffffffffffffffffffff;
@@ -56,8 +56,6 @@ contract Token is IERC20, Pausable, Redirectable {
     bytes32 internal constant PERM_UPGRADE = keccak256("token: upgrade");
     // Also inherit PERM_PAUSE
     // Also inherit PERM_REDIRECT
-
-    event Transfer(address indexed _from, address indexed _to, uint256 value);
 
     /**
      * @dev Token creates the token with the required parameters.  If _store is supplied
@@ -73,8 +71,9 @@ contract Token is IERC20, Pausable, Redirectable {
         if (_store == 0) {
             store = new SimpleTokenStore(_name, _symbol, _decimals);
             store.mint(msg.sender, _totalSupply * uint256(10) ** _decimals);
+            Transfer(0, msg.sender, store.totalSupply());
         } else {
-            store = IPermissionedTokenStore(_store);
+            store = ITokenStore(_store);
         }
     }
 
@@ -171,9 +170,10 @@ contract Token is IERC20, Pausable, Redirectable {
     // Standard ERC-20 functions
     //
 
-    function transfer(address _to, uint256 _value) returns (bool) {
-        store.transfer(msg.sender, _to, _value);
-        Transfer(msg.sender, _to, _value);
+    function transfer(address _recipient, uint256 _value) returns (bool) {
+        require(_recipient != 0 && _recipient != address(this));
+        store.transfer(msg.sender, _recipient, _value);
+        Transfer(msg.sender, _recipient, _value);
         return true;
     }
 
@@ -192,6 +192,7 @@ contract Token is IERC20, Pausable, Redirectable {
     }
 
     function approve(address _recipient, uint256 _value) returns (bool) {
+        require(_recipient != 0 && _recipient != address(this));
         store.setAllowance(msg.sender, _recipient, _value);
         Approval(msg.sender, _recipient, _value);
         return true;

@@ -1,6 +1,5 @@
 pragma solidity ^0.4.11;
 
-
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +13,8 @@ pragma solidity ^0.4.11;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import '../auth/Permissioned.sol';
+
 /**
  * @title ITokenStore
  *        ITokenStore is the interface for storing tokens as part of a token
@@ -23,7 +24,7 @@ pragma solidity ^0.4.11;
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract ITokenStore {
+contract ITokenStore is Permissioned {
 
     // Common variables for all token stores
     string public name;
