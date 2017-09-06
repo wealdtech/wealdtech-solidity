@@ -13,8 +13,7 @@ pragma solidity ^0.4.11;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
-
+import '../math/SafeMath.sol';
 import './ITokenAgent.sol';
 import './IERC20.sol';
 

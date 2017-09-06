@@ -1,7 +1,7 @@
 pragma solidity ^0.4.11;
 
-import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 
+import '../math/SafeMath.sol';
 import '../lifecycle/Pausable.sol';
 import '../lifecycle/Redirectable.sol';
 import './ITokenStore.sol';
@@ -58,9 +58,9 @@ contract Token is IERC20, Pausable, Redirectable {
     // Also inherit PERM_REDIRECT
 
     /**
-     * @dev Token creates the token with the required parameters.  If _store is supplied
-     *      then the existing store is used, otherwise a new store is created with the
-     *      other supplied parameters
+     * @dev Token creates the token with the required parameters.  If
+     *      _tokenstore is supplied then the existing store is used, otherwise a
+     *      new store is created with the other supplied parameters.
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _decimals the number of decimal places of the common unit (commonly 0 or 18)

@@ -80,23 +80,23 @@ contract('Token', accounts => {
     amounts.push(pack(accounts[7], 1));
     amounts.push(pack(accounts[8], 1));
     amounts.push(pack(accounts[9], 1));
-    var tx = await instance.bulkTransfer(amounts);
+    await instance.bulkTransfer(amounts);
+    assert.equal(await instance.balanceOf(accounts[0]), 9675);
   });
 
   it('can transfer multiple (100)', async function() {
     var amounts = [];
-    for (var i = 0; i < 100; i ++) {
+    for (var i = 1; i <= 100; i ++) {
         amounts.push(pack('0x' + ('0000000000000000000000000000000000000000' + i.toString(16)).slice(-40), 1));
     }
-    var tx = await instance.bulkTransfer(amounts);
-    var tx = await instance.bulkTransfer(amounts);
+    await instance.bulkTransfer(amounts);
   });
 
   it('can upgrade to a new contract', async function() {
     oldInstance = instance;
     instance = await Token.new('Test token', 'TST', 2, 100, await oldInstance.store(), {from: accounts[1]});
     // Ensure that the new instance has access to the store
-    assert.equal(await instance.balanceOf(accounts[0]), 9475);
+    assert.equal(await instance.balanceOf(accounts[0]), 9575);
     
     // Carry out the upgrade
     await oldInstance.preUpgrade(instance.address, {from: accounts[0]});
@@ -104,10 +104,10 @@ contract('Token', accounts => {
     await oldInstance.postUpgrade({from: accounts[0]});
 
     // Ensure the new contract can carry out transfers
-    assert.equal(await instance.balanceOf(accounts[0]), 9475);
+    assert.equal(await instance.balanceOf(accounts[0]), 9575);
     assert.equal(await instance.balanceOf(accounts[1]), 107);
     await instance.transfer(accounts[1], 1, {from: accounts[0]});
-    assert.equal(await instance.balanceOf(accounts[0]), 9474);
+    assert.equal(await instance.balanceOf(accounts[0]), 9574);
     assert.equal(await instance.balanceOf(accounts[1]), 108);
   });
 
@@ -130,10 +130,10 @@ contract('Token', accounts => {
     await oldInstance.postUpgrade({from: accounts[1]});
 
     // Ensure the new contract can carry out transfers
-    assert.equal(await instance.balanceOf(accounts[0]), 9474);
+    assert.equal(await instance.balanceOf(accounts[0]), 9574);
     assert.equal(await instance.balanceOf(accounts[1]), 108);
     await instance.transfer(accounts[1], 1, {from: accounts[0]});
-    assert.equal(await instance.balanceOf(accounts[0]), 9473);
+    assert.equal(await instance.balanceOf(accounts[0]), 9573);
     assert.equal(await instance.balanceOf(accounts[1]), 109);
   });
 
