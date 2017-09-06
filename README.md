@@ -32,19 +32,31 @@ Redirectable provides a mechanism for contracts to be able to provide potential 
 
 ## Token
 
+### ITokenStore
+
+ITokenStore is the interface for storing tokens as part of a token.
+
+### IPermissionedTokenStore
+
+IPermissionedTokenStore is a simple extension of ITokenStore that locks all operations behind permissions.  
+
 ### TokenStore
 
-TokenStore provides storage for an ERC-20 contract separate from the contract itself.  This separation of token logic and storage allows upgrades to token functionality without requiring expensive copying of the token allocation information.
+TokenStore provides permissioned storage for an ERC-20 contract separate from the contract itself.  This separation of token logic and storage allows upgrades to token functionality without requiring expensive copying of the token allocation information.
+
+### IERC20
+
+IERC20 is the interface for ERC20-compliant tokens.
 
 ### Token
 
-Token is an ERC-20 compliant token implementation with significantly upgraded functionality including a separate token store, cheap bulk transfers and easy upgrading.
+Token is an ERC20-compliant token implementation with significantly upgraded functionality including a separate token store, cheap bulk transfers and easy upgrading.
 
-### TokenAgent
+### ITokenAgent
 
-TokenAgent is an abstract contract that issues tokens from an ERC-20 source.
+ITokenAgent is the interface for contracts that issue tokens from an ERC20 source.
 
-### FaucetAgent
+### FixedPriceTokenAgent
 
-FaucetAgent is a simple token agent that sells its tokens at a fixed exchange rate.
+FixedPriceTokenAgent is a simple token agent that sells its tokens at a fixed exchange rate.
 

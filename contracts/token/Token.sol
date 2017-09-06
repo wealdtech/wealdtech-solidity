@@ -1,11 +1,12 @@
 pragma solidity ^0.4.11;
 
-import './ERC20.sol';
 import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 
 import '../lifecycle/Pausable.sol';
 import '../lifecycle/Redirectable.sol';
-import './TokenStore.sol';
+import './IPermissionedTokenStore.sol';
+import './SimpleTokenStore.sol';
+import './IERC20.sol';
 
 
 /**
@@ -42,11 +43,11 @@ import './TokenStore.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract Token is ERC20, Pausable, Redirectable {
+contract Token is IERC20, Pausable, Redirectable {
     using SafeMath for uint256;
 
     // The store for this token's definition, allowances and allocations
-    TokenStore public store;
+    IPermissionedTokenStore public store;
 
     // The mask for the address as part of a uint256 for bulkTransfer()
     uint256 private constant ADDRESS_MASK = 0x00ffffffffffffffffffffffffffffffffffffffff;
@@ -70,11 +71,19 @@ contract Token is ERC20, Pausable, Redirectable {
      */
     function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) {
         if (_store == 0) {
-            store = new TokenStore(_name, _symbol, _decimals);
+            store = new SimpleTokenStore(_name, _symbol, _decimals);
             store.mint(msg.sender, _totalSupply * uint256(10) ** _decimals);
         } else {
-            store = TokenStore(_store);
+            store = IPermissionedTokenStore(_store);
         }
+    }
+
+    /**
+     * @dev Fallback
+     *      This contract does not accept funds, so revert
+     */
+    function () public payable {
+        revert();
     }
 
     function totalSupply() public constant returns (uint256) {

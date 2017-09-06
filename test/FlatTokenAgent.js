@@ -1,13 +1,12 @@
 'use strict';
 
 const assertJump = require('./helpers/assertJump');
-const FaucetAgent = artifacts.require('./token/FaucetAgent.sol');
+const FixedPriceTokenAgent = artifacts.require('./token/FixedPriceTokenAgent.sol');
 const TestToken = artifacts.require('./samplecontracts/TestToken.sol');
-const ERC20 = artifacts.require('../node_modules/zeppelin-solidity/contracts/token/ERC20.sol');
 
 const sha3 = require('solidity-sha3').default;
 
-contract('FaucetAgent', accounts => {
+contract('FixedPriceTokenAgent', accounts => {
     const tokenOwner = accounts[0];
     const faucetOwner = accounts[1];
     const requestor = accounts[2];
@@ -16,7 +15,7 @@ contract('FaucetAgent', accounts => {
 
     it ('can set up the contracts', async () => {
         token = await TestToken.new();
-        faucet = await FaucetAgent.new(token.address, 10, {from: faucetOwner});
+        faucet = await FixedPriceTokenAgent.new(token.address, 10, {from: faucetOwner});
     });
 
     it ('can transfer tokens to the faucet agent', async () => {

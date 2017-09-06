@@ -14,25 +14,24 @@ pragma solidity ^0.4.11;
 // limitations under the License.
 
 import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
-import '../auth/Permissioned.sol';
+import './IPermissionedTokenStore.sol';
 
 
 /**
- * @title TokenStore
- *        TokenStore provides storage for an ERC-20 contract separate from the
- *        contract itself.  This separation of token logic and storage allows
- *        upgrades to token functionality without requiring expensive copying
- *        of the token allocation information.
+ * @title SimpleTokenStore
+ *        SimpleTokenStore provides storage for an ERC-20 contract separate from
+ *        the contract itself.  This separation of token logic and storage
+ *        allows upgrades to token functionality without requiring expensive
+ *        copying of the token allocation information.
  * 
- *        Calling functions that alter the token distribution require the
- *        caller to have the PERM_ACT permission.
+ *        Calling functions that alter the token distribution require the caller
+ *        to have the PERM_ACT permission.
  *
- *        Note that this contract is aggressively ERC-20 non-compliant, to
- *        avoid any confusion that this might be a token contract in its own
- *        right.
+ *        Note that this contract is aggressively ERC-20 non-compliant, to avoid
+ *        any confusion that this might be a token contract in its own right.
  *        
- *        Also note that this contract does not emit any events.  That is the
- *        job of the token contract.
+ *        Also note that this contract does not emit any events; that is the job
+ *        of the token contract.
  *        
  *        This contract has individual permissions for each major operation.
  *        These are:
@@ -48,17 +47,14 @@ import '../auth/Permissioned.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract TokenStore is Permissioned {
+contract SimpleTokenStore is IPermissionedTokenStore {
     using SafeMath for uint256;
 
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-    uint256 public totalSupply;
-
+    // Keep track of balances and allowances
     mapping(address=>uint256) private balances;
     mapping(address=>mapping(address=>uint256)) private allowances;
 
+    // Permissions for each operation
     bytes32 private constant PERM_MINT = keccak256("token storage: mint");
     bytes32 private constant PERM_TRANSFER = keccak256("token storage: transfer");
     bytes32 private constant PERM_SET_ALLOWANCE = keccak256("token storage: set allowance");
@@ -68,17 +64,25 @@ contract TokenStore is Permissioned {
      * @dev Constructor
      *      This is usually called by a token contract.
      */
-    function TokenStore(string _name, string _symbol, uint8 _decimals) {
+    function SimpleTokenStore(string _name, string _symbol, uint8 _decimals) {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
     }
 
     /**
+     * @dev Fallback
+     *      This contract does not accept funds, so revert
+     */
+    function () public payable {
+        revert();
+    }
+
+    /**
      * @dev Mint tokens and allocate them to a recipient.
      */
-    function mint(address recipient, uint256 _amount) ifPermitted(msg.sender, PERM_MINT) {
-        balances[recipient] = balances[recipient].add(_amount);
+    function mint(address _recipient, uint256 _amount) ifPermitted(msg.sender, PERM_MINT) {
+        balances[_recipient] = balances[_recipient].add(_amount);
         totalSupply = totalSupply.add(_amount);
     }
 
@@ -86,9 +90,9 @@ contract TokenStore is Permissioned {
      * @dev Transfer tokens directly from owner to recipient, bypassing
      *      allowances.
      */
-    function transfer(address owner, address recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_TRANSFER) {
-        balances[owner] = balances[owner].sub(_amount);
-        balances[recipient] = balances[recipient].add(_amount);
+    function transfer(address _owner, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_TRANSFER) {
+        balances[_owner] = balances[_owner].sub(_amount);
+        balances[_recipient] = balances[_recipient].add(_amount);
     }
 
     /**
@@ -107,13 +111,13 @@ contract TokenStore is Permissioned {
      *      conditions with transactions.  Allocations must always go from
      *      zero to non-zero, or non-zero to zero.
      */
-    function setAllowance(address sender, address recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_SET_ALLOWANCE) {
-        require((_amount == 0) || (allowances[sender][recipient] == 0));
+    function setAllowance(address _owner, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_SET_ALLOWANCE) {
+        require((_amount == 0) || (allowances[_owner][_recipient] == 0));
 
         // Ensure the sender is not allocating more funds than they have.
-        require(_amount <= balances[sender]);
+        require(_amount <= balances[_owner]);
 
-        allowances[sender][recipient] = _amount;
+        allowances[_owner][_recipient] = _amount;
     }
 
     /**
@@ -122,11 +126,11 @@ contract TokenStore is Permissioned {
      *      if A gives B an allowance of 10 tokens it is possible for B to
      *      transfer those 10 tokens directly from A to C.
      */
-    function useAllowance(address owner, address allowanceHolder, address recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_USE_ALLOWANCE) {
-        var allowance = allowances[owner][allowanceHolder];
-        balances[owner] = balances[owner].sub(_amount);
-        balances[recipient] = balances[recipient].add(_amount);
-        allowances[owner][allowanceHolder] = allowance.sub(_amount);
+    function useAllowance(address _owner, address _allowanceHolder, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_USE_ALLOWANCE) {
+        var allowance = allowances[_owner][_allowanceHolder];
+        balances[_owner] = balances[_owner].sub(_amount);
+        balances[_recipient] = balances[_recipient].add(_amount);
+        allowances[_owner][_allowanceHolder] = allowance.sub(_amount);
     }
 
     /**
@@ -136,7 +140,7 @@ contract TokenStore is Permissioned {
      *      address can pay a certain amount it is important to check using
      *      both the values obtain from this and balanceOf().
      */
-    function allowanceOf(address owner, address recipient) public constant returns (uint256) {
-        return allowances[owner][recipient];
+    function allowanceOf(address _owner, address _recipient) public constant returns (uint256) {
+        return allowances[_owner][_recipient];
     }
 }

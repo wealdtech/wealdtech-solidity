@@ -13,29 +13,17 @@ pragma solidity ^0.4.11;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import './ERC20.sol';
+import './ITokenStore.sol';
+import '../auth/Permissioned.sol';
 
 
 /**
- * @title TokenAgent
- *        TokenAgent is an abstract contract that issues tokens from an ERC-20
- *        source.
+ * @title IPermissionedTokenStore
+ *        IPermissionedTokenStore is a simple extension of ITokenStore that
+ *        locks all operations behind permissions.
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract TokenAgent {
-    // The token being sold
-    ERC20 token;
-
-    /**
-     * @dev active states if the agent is currently active.
-     */ 
-    function active() public constant returns (bool);
-
-    /**
-     * @dev provide the number of tokens available.
-     */
-    function tokensAvailable() public constant returns (uint256);
-}
+contract IPermissionedTokenStore is ITokenStore, Permissioned { }

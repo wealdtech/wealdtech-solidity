@@ -2,7 +2,6 @@
 
 const assertJump = require('./helpers/assertJump');
 const Token = artifacts.require('./Token.sol');
-const TokenStore = artifacts.require('./token/TokenStore.sol');
 
 const sha3 = require('solidity-sha3').default;
 

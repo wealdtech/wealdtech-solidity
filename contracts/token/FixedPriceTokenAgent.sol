@@ -13,26 +13,31 @@ pragma solidity ^0.4.11;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import './TokenAgent.sol';
-import './ERC20.sol';
 import '../../node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
+
+import './ITokenAgent.sol';
+import './IERC20.sol';
 
 
 /**
- * @title FaucetAgent
- *        A simple token agent that sells its tokens at a fixed exchange rate.
+ * @title FixedPriceTokenAgent
+ *        A simple token agent that sells its tokens at a fixed exchange rate
+ *        of Ether to tokens.
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract FaucetAgent is TokenAgent {
+contract FixedPriceTokenAgent is ITokenAgent {
     using SafeMath for uint256;
+
+    // The token being sold
+    IERC20 token;
 
     // The number of tokens per Wei.
     uint256 tokensPerWei;
 
-    function FaucetAgent(ERC20 _token, uint256 _tokensPerWei) {
+    function FixedPriceTokenAgent(IERC20 _token, uint256 _tokensPerWei) {
         token = _token;
         require(_tokensPerWei > 0);
         tokensPerWei = _tokensPerWei;
