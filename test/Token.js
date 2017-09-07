@@ -150,13 +150,13 @@ contract('Token', accounts => {
 
 // Use a new instance for testing token dividends
 contract('Dividend Token', accounts => {
-  var total = 50000;
+  var total = 80000;
   var instance;
 
-  let expectedBalances = [ 30000, 10000, 10000 ];
+  let expectedBalances = [ 60000, 10000, 10000 ];
 
   it('has an initial balance', async function() {
-      instance = await Token.new('Test token', 'TST', 3, 50, 0, {from: accounts[0]});
+      instance = await Token.new('Test token', 'TST', 3, 80, 0, {from: accounts[0]});
       await instance.transfer(accounts[1], 10000, {from: accounts[0]});
       await instance.transfer(accounts[2], 10000, {from: accounts[0]});
 
@@ -166,14 +166,18 @@ contract('Dividend Token', accounts => {
       }
   });
 
-  it('can add a dividend', async function() {
-      await instance.issueDividend(10000, {from: accounts[0]});
+  it('can issue a dividend', async function() {
+      const dividend = 10;
+      await instance.issueDividend(dividend, {from: accounts[0]});
       // Reduction for transfer
-      expectedBalances[0] -= 10000;
+      expectedBalances[0] -= dividend * 1000;
       // Addition for dividends
-      expectedBalances[0] *= 1.25;
-      expectedBalances[1] *= 1.25;
-      expectedBalances[2] *= 1.25;
+      expectedBalances[0] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
+      expectedBalances[0] = Math.floor(expectedBalances[0]);
+      expectedBalances[1] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
+      expectedBalances[1] = Math.floor(expectedBalances[1]);
+      expectedBalances[2] *= (1 + (dividend * 1000) / (total -( dividend * 1000)));
+      expectedBalances[2] = Math.floor(expectedBalances[2]);
 
       // Confirm balances
       for (var i = 0; i < expectedBalances.length; i ++) {
@@ -193,14 +197,17 @@ contract('Dividend Token', accounts => {
   });
 
   it('handles multiple unclaimed dividends', async function() {
-      const dividend = 10000;
+      const dividend = 2;
       await instance.issueDividend(dividend, {from: accounts[0]});
       // Reduction for transfer
-      expectedBalances[0] -= dividend;
+      expectedBalances[0] -= dividend * 1000;
       // Addition for dividends
-      expectedBalances[0] *= (1 + dividend / (total - dividend));
-      expectedBalances[1] *= (1 + dividend / (total - dividend));
-      expectedBalances[2] *= (1 + dividend / (total - dividend));
+      expectedBalances[0] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
+      expectedBalances[0] = Math.floor(expectedBalances[0]);
+      expectedBalances[1] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
+      expectedBalances[1] = Math.floor(expectedBalances[1]);
+      expectedBalances[2] *= (1 + (dividend * 1000) / (total -( dividend * 1000)));
+      expectedBalances[2] = Math.floor(expectedBalances[2]);
 
       // Confirm balances
       for (var i = 0; i < expectedBalances.length; i ++) {
@@ -208,18 +215,18 @@ contract('Dividend Token', accounts => {
       }
   });
 
-  it('can create many dividends', async function() {
-      const dividend = 250;
+  it('can issue many dividends', async function() {
+      const dividend = 1;
       for (var i = 0; i < 20; i++) {
           await instance.issueDividend(dividend, {from: accounts[0]});
           // Reduction for transfer
-          expectedBalances[0] -= dividend;
+          expectedBalances[0] -= dividend * 1000;
           // Addition for dividends
-          expectedBalances[0] *= (1 + dividend / (total - dividend));
+          expectedBalances[0] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
           expectedBalances[0] = Math.floor(expectedBalances[0]);
-          expectedBalances[1] *= (1 + dividend / (total - dividend));
+          expectedBalances[1] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
           expectedBalances[1] = Math.floor(expectedBalances[1]);
-          expectedBalances[2] *= (1 + dividend / (total - dividend));
+          expectedBalances[2] *= (1 + (dividend * 1000) / (total - (dividend * 1000)));
           expectedBalances[2] = Math.floor(expectedBalances[2]);
       }
 
@@ -231,14 +238,14 @@ contract('Dividend Token', accounts => {
 
   it('still works after additional coins have been minted', async function() {
       // Set a dividend
-      const dividend1 = 200;
+      const dividend1 = 2;
       await instance.issueDividend(dividend1, {from: accounts[0]});
-      expectedBalances[0] -= dividend1;
-      expectedBalances[0] *= (1 + dividend1 / (total - dividend1));
+      expectedBalances[0] -= dividend1 * 1000;
+      expectedBalances[0] *= (1 + (dividend1 * 1000) / (total - (dividend1 * 1000)));
       expectedBalances[0] = Math.floor(expectedBalances[0]);
-      expectedBalances[1] *= (1 + dividend1 / (total - dividend1));
+      expectedBalances[1] *= (1 + (dividend1 * 1000) / (total - (dividend1 * 1000)));
       expectedBalances[1] = Math.floor(expectedBalances[1]);
-      expectedBalances[2] *= (1 + dividend1 / (total - dividend1));
+      expectedBalances[2] *= (1 + (dividend1 * 1000) / (total - (dividend1 * 1000)));
       expectedBalances[2] = Math.floor(expectedBalances[2]);
 
       // Increase the token supply
@@ -252,14 +259,14 @@ contract('Dividend Token', accounts => {
       assert.equal((await instance.balanceOf(accounts[0])).toString(), expectedBalances[0]);
 
       // Set a dividend
-      const dividend2 = 200;
+      const dividend2 = 5;
       await instance.issueDividend(dividend2, {from: accounts[0]});
-      expectedBalances[0] -= dividend2;
-      expectedBalances[0] *= (1 + dividend2 / (total - dividend2));
+      expectedBalances[0] -= dividend2 * 1000;
+      expectedBalances[0] *= (1 + (dividend2 * 1000) / (total - (dividend2 * 1000)));
       expectedBalances[0] = Math.floor(expectedBalances[0]);
-      expectedBalances[1] *= (1 + dividend2 / (total - dividend2));
+      expectedBalances[1] *= (1 + (dividend2 * 1000) / (total - (dividend2 * 1000)));
       expectedBalances[1] = Math.floor(expectedBalances[1]);
-      expectedBalances[2] *= (1 + dividend2 / (total - dividend2));
+      expectedBalances[2] *= (1 + (dividend2 * 1000) / (total - (dividend2 * 1000)));
       expectedBalances[2] = Math.floor(expectedBalances[2]);
 
       // Confirm balances
@@ -286,75 +293,6 @@ contract('Realistic Dividend Token', accounts => {
       // Confirm balances
       for (var i = 0; i < expectedBalances.length; i ++) {
           assert.equal((await instance.balanceOf(accounts[i])).toString(10), expectedBalances[i].toString(10));
-      }
-  });
-
-  it('can add a dividend', async function() {
-      const dividend = web3.toWei(1000, 'ether');
-      await instance.issueDividend(dividend, {from: accounts[0]});
-      // Reduction for transfer
-      expectedBalances[0] -= dividend;
-      // Addition for dividends
-console.log(expectedBalances[0].toString(10));
-console.log(typeof expectedBalances[0]);
-console.log(dividend);
-console.log(typeof dividend);
-      expectedBalances[0] += web3.toWei(expectedBalances[0] * dividend / (total - dividend), 'wei');
-      expectedBalances[1] += web3.toWei(expectedBalances[1] * dividend / (total - dividend), 'wei');
-      expectedBalances[2] += web3.toWei(expectedBalances[2] * dividend / (total - dividend), 'wei');
-
-      // Confirm balances
-      for (var i = 0; i < expectedBalances.length; i ++) {
-          assert.equal((await instance.balanceOf(accounts[i])).toString(10), expectedBalances[i].toString(10));
-      }
-  });
-
-  it('maintains balances after a transfer', async function() {
-      const amount =web3.toWei(1.76544, 'ether');
-      await instance.transfer(accounts[1], amount, {from: accounts[0]});
-      expectedBalances[0] -= amount;
-      expectedBalances[1] += amount;
-
-      // Confirm balances
-      for (var i = 0; i < expectedBalances.length; i ++) {
-          assert.equal((await instance.balanceOf(accounts[i])).toString(), expectedBalances[i]);
-      }
-  });
-
-  it('handles multiple unclaimed dividends', async function() {
-      const dividend =web3.toWei(10.546638436, 'ether');
-      await instance.issueDividend(dividend, {from: accounts[0]});
-      // Reduction for transfer
-      expectedBalances[0] -= dividend;
-      // Addition for dividends
-      expectedBalances[0] *= (1 + dividend / (total - dividend));
-      expectedBalances[1] *= (1 + dividend / (total - dividend));
-      expectedBalances[2] *= (1 + dividend / (total - dividend));
-
-      // Confirm balances
-      for (var i = 0; i < expectedBalances.length; i ++) {
-          assert.equal((await instance.balanceOf(accounts[i])).toString(), expectedBalances[i]);
-      }
-  });
-
-  it('can create many dividends', async function() {
-      const dividend =web3.toWei(10.81703, 'ether');
-      for (var i = 0; i < 100; i++) {
-          await instance.issueDividend(dividend, {from: accounts[0]});
-          // Reduction for transfer
-          expectedBalances[0] -= dividend;
-          // Addition for dividends
-          expectedBalances[0] *= (1 + dividend / (total - dividend));
-          expectedBalances[0] = Math.floor(expectedBalances[0]);
-          expectedBalances[1] *= (1 + dividend / (total - dividend));
-          expectedBalances[1] = Math.floor(expectedBalances[1]);
-          expectedBalances[2] *= (1 + dividend / (total - dividend));
-          expectedBalances[2] = Math.floor(expectedBalances[2]);
-      }
-
-      // Confirm balances
-      for (var i = 0; i < expectedBalances.length; i ++) {
-          assert.equal((await instance.balanceOf(accounts[i])).toString(), expectedBalances[i]);
       }
   });
 });

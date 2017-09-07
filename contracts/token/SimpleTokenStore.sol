@@ -51,14 +51,14 @@ contract SimpleTokenStore is ITokenStore {
     using SafeMath for uint256;
 
     // Keep track of balances and allowances
-    mapping(address=>uint256) private balances;
-    mapping(address=>mapping(address=>uint256)) private allowances;
+    mapping(address=>uint256) internal balances;
+    mapping(address=>mapping(address=>uint256)) internal allowances;
 
     // Permissions for each operation
-    bytes32 private constant PERM_MINT = keccak256("token storage: mint");
-    bytes32 private constant PERM_TRANSFER = keccak256("token storage: transfer");
-    bytes32 private constant PERM_SET_ALLOWANCE = keccak256("token storage: set allowance");
-    bytes32 private constant PERM_USE_ALLOWANCE = keccak256("token storage: use allowance");
+    bytes32 internal constant PERM_MINT = keccak256("token storage: mint");
+    bytes32 internal constant PERM_TRANSFER = keccak256("token storage: transfer");
+    bytes32 internal constant PERM_SET_ALLOWANCE = keccak256("token storage: set allowance");
+    bytes32 internal constant PERM_USE_ALLOWANCE = keccak256("token storage: use allowance");
 
     /**
      * @dev Constructor

@@ -177,10 +177,16 @@ contract Token is IERC20, Pausable, Redirectable {
         }
     }
 
-    // TODO modifiers?  Permissions?
-    // Do not allow anyone to add dividends; continual 1-token dividends would cost users gas
+    /**
+     * @dev issue a dividend.
+     *      Provide a number of tokens as a dividend.  The tokens will be
+     *      allocated to all existing token holders (including the sender) in
+     *      proportion to the number of tokens they hold at the time this
+     *      function is called.
+     * @param _amount the amount of the dividend to issue (in the common unit)
+     */
     function issueDividend(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) {
-        store.issueDividend(msg.sender, _amount);
+        store.issueDividend(msg.sender, _amount * uint256(10) ** store.decimals());
     }
 
     /**
