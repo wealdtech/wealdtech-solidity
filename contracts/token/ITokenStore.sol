@@ -15,6 +15,7 @@ pragma solidity ^0.4.11;
 
 import '../auth/Permissioned.sol';
 
+
 /**
  * @title ITokenStore
  *        ITokenStore is the interface for storing tokens as part of a token
@@ -75,4 +76,20 @@ contract ITokenStore is Permissioned {
      *      both the values obtain from this and balanceOf().
      */
     function allowanceOf(address _owner, address _recipient) public constant returns (uint256);
+
+    /**
+     * @dev Add a token dividend.
+     *      A token dividend is a number of tokens transferred from an owner
+     *      to be shared amongst all existing token holders in proportion to
+     *      their existing holdings.
+     */
+//    function addTokenDividend(address _owner, uint256 _amount) public;
+
+    /**
+     * @dev Synchronise the data for an account.
+     *      This function must be called before any operation to view or alter
+     *      the named account is undertaken, otherwise users risk obtaining
+     *      incorrect information.
+     */
+    function sync(address _account) public;
 }

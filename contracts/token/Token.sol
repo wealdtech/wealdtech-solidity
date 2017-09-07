@@ -4,8 +4,8 @@ pragma solidity ^0.4.11;
 import '../math/SafeMath.sol';
 import '../lifecycle/Pausable.sol';
 import '../lifecycle/Redirectable.sol';
-import './ITokenStore.sol';
-import './SimpleTokenStore.sol';
+import './DividendTokenStore.sol';
+//import './SimpleTokenStore.sol';
 import './IERC20.sol';
 
 
@@ -47,15 +47,26 @@ contract Token is IERC20, Pausable, Redirectable {
     using SafeMath for uint256;
 
     // The store for this token's definition, allowances and allocations
-    ITokenStore public store;
+    DividendTokenStore public store;
 
     // The mask for the address as part of a uint256 for bulkTransfer()
     uint256 private constant ADDRESS_MASK = 0x00ffffffffffffffffffffffffffffffffffffffff;
 
     // Permissions for this contract
+    bytes32 internal constant PERM_MINT = keccak256("token: mint");
+    bytes32 internal constant PERM_ISSUE_DIVIDEND = keccak256("token: issue dividend");
     bytes32 internal constant PERM_UPGRADE = keccak256("token: upgrade");
     // Also inherit PERM_PAUSE
     // Also inherit PERM_REDIRECT
+
+
+    // This modifier syncs the data of the given account.  It *must* be
+    // attached to every function that interacts with the token store for *all*
+    // participants in the function.
+    modifier sync(address _account) {
+        store.sync(_account);
+        _;
+    }
 
     /**
      * @dev Token creates the token with the required parameters.  If
@@ -63,17 +74,17 @@ contract Token is IERC20, Pausable, Redirectable {
      *      new store is created with the other supplied parameters.
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
-     * @param _decimals the number of decimal places of the common unit (commonly 0 or 18)
+     * @param _decimals the number of decimal places of the common unit (commonly 18)
      * @param _totalSupply the total supply (in the common unit)
      * @param _store a pre-existing token store (set to 0 if no pre-existing token store)
      */
     function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) {
         if (_store == 0) {
-            store = new SimpleTokenStore(_name, _symbol, _decimals);
+            store = new DividendTokenStore(_name, _symbol, _decimals);
             store.mint(msg.sender, _totalSupply * uint256(10) ** _decimals);
             Transfer(0, msg.sender, store.totalSupply());
         } else {
-            store = ITokenStore(_store);
+            store = DividendTokenStore(_store);
         }
     }
 
@@ -166,26 +177,40 @@ contract Token is IERC20, Pausable, Redirectable {
         }
     }
 
+    // TODO modifiers?  Permissions?
+    // Do not allow anyone to add dividends; continual 1-token dividends would cost users gas
+    function issueDividend(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) {
+        store.issueDividend(msg.sender, _amount);
+    }
+
+    /**
+     * @dev mint more tokens
+     * @param _amount the amount of tokens to mint (in the common unit)
+     */
+    function mint(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) {
+        store.mint(msg.sender, _amount * uint256(10) ** store.decimals());
+    }
+
     //
     // Standard ERC-20 functions
     //
 
-    function transfer(address _recipient, uint256 _value) returns (bool) {
+    function transfer(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) returns (bool) {
         require(_recipient != 0 && _recipient != address(this));
         store.transfer(msg.sender, _recipient, _value);
         Transfer(msg.sender, _recipient, _value);
         return true;
     }
 
-    function balanceOf(address _owner) constant returns (uint256) {
+    function balanceOf(address _owner) constant sync(_owner) returns (uint256) {
         return store.balanceOf(_owner);
     }
 
-    function allowance(address _owner, address _recipient) constant returns (uint256) {
+    function allowance(address _owner, address _recipient) sync(_owner) constant returns (uint256) {
         return store.allowanceOf(_owner, _recipient);
     }
 
-    function transferFrom(address _owner, address _recipient, uint256 _value) returns (bool) {
+    function transferFrom(address _owner, address _recipient, uint256 _value) sync(msg.sender) sync(_owner) sync(_recipient) returns (bool) {
         store.useAllowance(_owner, msg.sender, _recipient, _value);
         Transfer(_owner, _recipient, _value);
         return true;

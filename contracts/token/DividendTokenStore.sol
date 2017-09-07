@@ -18,53 +18,51 @@ import './ITokenStore.sol';
 
 
 /**
- * @title SimpleTokenStore
- *        SimpleTokenStore provides storage for an ERC-20 contract separate from
- *        the contract itself.  This separation of token logic and storage
- *        allows upgrades to token functionality without requiring expensive
- *        copying of the token allocation information.
- * 
- *        Calling functions that alter the token distribution require the caller
- *        to have the PERM_ACT permission.
+ * @title DividendTokenStore
+ *        DividendTokenStore is an enhancement of the SimpleTokenStore that
+ *        provides the ability to issue token-based dividends in an efficient
+ *        manner.
  *
- *        Note that this contract is aggressively ERC-20 non-compliant, to avoid
- *        any confusion that this might be a token contract in its own right.
- *        
- *        Also note that this contract does not emit any events; that is the job
- *        of the token contract.
- *        
  *        This contract has individual permissions for each major operation.
- *        These are:
- *          - PERM_MINT: permission to mint new tokens
- *          - PERM_TRANSFER: permission to transfer tokens from own holder to
- *                           another regardless of allowance
- *          - PERM_SET_ALLOWANCE: permission to set the number of tokens allowed
- *                                to be transferred from one holder to another
- *          - PERM_USE_ALLOWANCE: permission to transfer tokens from one holder
- *                                to another within the bounds of the allowance
+ *        In addition to those in SimpleTokenStore these are:
+ *          - PERM_ISSUE_DIVIDEND: permission to issue a dividend
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract SimpleTokenStore is ITokenStore {
+contract DividendTokenStore is ITokenStore {
     using SafeMath for uint256;
 
-    // Keep track of balances and allowances
-    mapping(address=>uint256) private balances;
-    mapping(address=>mapping(address=>uint256)) private allowances;
+    // Account keeps track of user information regarding the token
+    struct Account {
+        uint256 balance;
+        uint256 nextDividend;
+        mapping(address=>uint256) allowances;
+    }
+    mapping(address=>Account) private accounts;
+
+    // Dividend tracks the number of tokens issued in the dividend and the
+    // supply at the time (minus the dividend itself)
+    struct Dividend {
+        uint256 amount;
+        uint256 supply;
+    }
+    Dividend[] private dividends;
+    address private DIVIDEND_ADDRESS = 0x01;
 
     // Permissions for each operation
     bytes32 private constant PERM_MINT = keccak256("token storage: mint");
     bytes32 private constant PERM_TRANSFER = keccak256("token storage: transfer");
     bytes32 private constant PERM_SET_ALLOWANCE = keccak256("token storage: set allowance");
     bytes32 private constant PERM_USE_ALLOWANCE = keccak256("token storage: use allowance");
+    bytes32 private constant PERM_ISSUE_DIVIDEND = keccak256("token storage: issue dividend");
 
     /**
      * @dev Constructor
      *      This is usually called by a token contract.
      */
-    function SimpleTokenStore(string _name, string _symbol, uint8 _decimals) {
+    function DividendTokenStore(string _name, string _symbol, uint8 _decimals) {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
@@ -82,7 +80,7 @@ contract SimpleTokenStore is ITokenStore {
      * @dev Mint tokens and allocate them to a recipient.
      */
     function mint(address _recipient, uint256 _amount) ifPermitted(msg.sender, PERM_MINT) {
-        balances[_recipient] = balances[_recipient].add(_amount);
+        accounts[_recipient].balance = accounts[_recipient].balance.add(_amount);
         totalSupply = totalSupply.add(_amount);
     }
 
@@ -91,15 +89,15 @@ contract SimpleTokenStore is ITokenStore {
      *      allowances.
      */
     function transfer(address _owner, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_TRANSFER) {
-        balances[_owner] = balances[_owner].sub(_amount);
-        balances[_recipient] = balances[_recipient].add(_amount);
+        accounts[_owner].balance = accounts[_owner].balance.sub(_amount);
+        accounts[_recipient].balance = accounts[_recipient].balance.add(_amount);
     }
 
     /**
      * @dev Obtain a balance.
      */
     function balanceOf(address _owner) public constant returns (uint256 balance) {
-        return balances[_owner];
+        return accounts[_owner].balance;
     }
 
     /**
@@ -112,12 +110,12 @@ contract SimpleTokenStore is ITokenStore {
      *      zero to non-zero, or non-zero to zero.
      */
     function setAllowance(address _owner, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_SET_ALLOWANCE) {
-        require((_amount == 0) || (allowances[_owner][_recipient] == 0));
+        require((_amount == 0) || (accounts[_owner].allowances[_recipient] == 0));
 
         // Ensure the sender is not allocating more funds than they have.
-        require(_amount <= balances[_owner]);
+        require(_amount <= accounts[_owner].balance);
 
-        allowances[_owner][_recipient] = _amount;
+        accounts[_owner].allowances[_recipient] = _amount;
     }
 
     /**
@@ -127,10 +125,9 @@ contract SimpleTokenStore is ITokenStore {
      *      transfer those 10 tokens directly from A to C.
      */
     function useAllowance(address _owner, address _allowanceHolder, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_USE_ALLOWANCE) {
-        var allowance = allowances[_owner][_allowanceHolder];
-        balances[_owner] = balances[_owner].sub(_amount);
-        balances[_recipient] = balances[_recipient].add(_amount);
-        allowances[_owner][_allowanceHolder] = allowance.sub(_amount);
+        accounts[_owner].balance = accounts[_owner].balance.sub(_amount);
+        accounts[_recipient].balance = accounts[_recipient].balance.add(_amount);
+        accounts[_owner].allowances[_allowanceHolder] = accounts[_owner].allowances[_allowanceHolder].sub(_amount);
     }
 
     /**
@@ -141,9 +138,45 @@ contract SimpleTokenStore is ITokenStore {
      *      both the values obtain from this and balanceOf().
      */
     function allowanceOf(address _owner, address _recipient) public constant returns (uint256) {
-        return allowances[_owner][_recipient];
+        return accounts[_owner].allowances[_recipient];
     }
 
-    // Nothing to sync
-    function sync(address _address) {}
+    /**
+     * @dev obtain the dividend(s) owing to a given account.
+     */
+    function dividendsOwing(address _account) internal returns(uint256) {
+        uint256 initialBalance = accounts[_account].balance;
+        uint256 balance = initialBalance;
+        // Iterate over all outstanding dividends
+        var nextDividend = accounts[_account].nextDividend;
+        for (uint256 currentDividend = nextDividend; currentDividend < dividends.length; currentDividend++) {
+            balance += balance * dividends[currentDividend].amount / dividends[currentDividend].supply;
+        }
+
+        return balance - initialBalance;
+    }
+
+    /**
+     * @dev Synchronise the account details.
+     *      Sync must be called by a modifier for any function that looks at or
+     *      changes details of an account, even if that function is constant.
+     * @param _account the account for which to synchronise the balance.
+     */
+    function sync(address _account) public {
+        var accountDividend = dividendsOwing(_account);
+        if (accountDividend > 0) {
+            transfer(DIVIDEND_ADDRESS, _account, accountDividend);
+            accounts[_account].nextDividend = dividends.length;
+        }
+    }
+
+    /**
+     * @dev issue a dividend.
+     *      This issues a dividend from the given sender for the given amount.
+     *      It shared the amount out fairly between all participants.
+     */
+    function issueDividend(address _sender, uint256 _amount) public ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) {
+        dividends.push(Dividend({amount: _amount, supply: totalSupply - _amount}));
+        transfer(_sender, DIVIDEND_ADDRESS, _amount);
+    }
 }
