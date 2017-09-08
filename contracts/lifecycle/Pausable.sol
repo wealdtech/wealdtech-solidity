@@ -29,6 +29,10 @@ import "../auth/Permissioned.sol";
  *
  *        Note that an attempt to pause() an already-paused contract, or to
  *        unpause() an unpaused contract, will throw.
+ *
+ *        State of this contract: under active development; has not been audited
+ *        and may contain bugs and/or security holes. Use at your own risk.
+ *
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued

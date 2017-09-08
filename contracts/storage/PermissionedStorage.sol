@@ -27,6 +27,10 @@ import "../auth/Permissioned.sol";
  *        Note that permissions are all-or-nothing, so this contract should not
  *        be shared between multiple parties that might have differing
  *        permissions.
+ *
+ *        State of this contract: under active development; has not been audited
+ *        and may contain bugs and/or security holes. Use at your own risk.
+ *
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
