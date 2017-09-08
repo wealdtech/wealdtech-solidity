@@ -30,8 +30,9 @@ import "../auth/Permissioned.sol";
  *        Note that an attempt to pause() an already-paused contract, or to
  *        unpause() an unpaused contract, will throw.
  *
- *        State of this contract: under active development; has not been audited
- *        and may contain bugs and/or security holes. Use at your own risk.
+ *        State of this contract: stable; development complete but the code is
+ *        unaudited. and may contain bugs and/or security holes. Use at your own
+ *        risk.
  *
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
