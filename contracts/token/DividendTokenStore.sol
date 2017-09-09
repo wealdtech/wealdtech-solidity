@@ -23,12 +23,23 @@ import './SimpleTokenStore.sol';
  *        provides the ability to issue token-based dividends in an efficient
  *        manner.
  *
+ *        The dividend token store allows multiple dividends to be added. Each
+ *        dividend is defined by the number of tokens to be shared between the
+ *        exisiting token holders (including the holder who issued the dividend)
+ *        on a pro rata basis, and the total supply of tokens (minus dividends)
+ *        at the time the dividend was issued.
+ *
+ *        Outstanding dividends are added to balances whenever that balance is
+ *        addressed, ensuring that balances are always up-to-date whilst
+ *        reducing the number of transactions required to do so to a minimum.
+ *
  *        This contract has individual permissions for each major operation.
  *        In addition to those in SimpleTokenStore these are:
  *          - PERM_ISSUE_DIVIDEND: permission to issue a dividend
  *
- *        State of this contract: under active development; code and API
- *        may change.  Use at your own risk.
+ *        State of this contract: stable; development complete but the code is
+ *        unaudited. and may contain bugs and/or security holes. Use at your own
+ *        risk.
  *
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or

@@ -10,7 +10,7 @@ import './DividendTokenStore.sol';
  * @title Token
  *        Token is an ERC-20 compliant token implementation with significantly
  *        upgraded functionality including a separate token store, cheap bulk
- *        transfers and easy upgrading.
+ *        transfers, efficient dividends, and easy upgrading.
  *
  *        The token is fully permissioned.  Permissions to carry out operations
  *        can be given to one or more addresses.  This increases the flexibility
@@ -33,8 +33,8 @@ import './DividendTokenStore.sol';
  *        be carried out in a gas-efficient manner, often halving the gas cost
  *        for large bulk transfers.
  *
- *          - direct.  The contract contains a list of contracts that can take
- *            funds directly from holders (use with care)
+ *        The underlying token store supports efficient token-based dividends;
+ *        see DividendTokenStore for more information about how dividends work.
  *
  *        State of this contract: stable; development complete but the code is
  *        unaudited. and may contain bugs and/or security holes. Use at your own
@@ -58,9 +58,6 @@ contract Token is IERC20, Managed {
     bytes32 internal constant PERM_MINT = keccak256("token: mint");
     bytes32 internal constant PERM_ISSUE_DIVIDEND = keccak256("token: issue dividend");
     bytes32 internal constant PERM_UPGRADE = keccak256("token: upgrade");
-    // Also inherit PERM_PAUSE
-    // Also inherit PERM_REDIRECT
-
 
     // This modifier syncs the data of the given account.  It *must* be
     // attached to every function that interacts with the token store for *all*
@@ -78,7 +75,7 @@ contract Token is IERC20, Managed {
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _decimals the number of decimal places of the common unit (commonly 18)
      * @param _totalSupply the total supply (in the common unit)
-     * @param _store a pre-existing token store (set to 0 if no pre-existing token store)
+     * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
     function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) {
         if (_store == 0) {

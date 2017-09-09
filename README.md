@@ -22,13 +22,9 @@ ENS resolves names to addresses, and addresses to names.  But to set the resolut
 
 ## Lifecycle
 
-### Pausable
+### Managed
 
-Pausable provides a toggle for the operation of contract functions.  This is accomplished through a combination of functions and modifiers.  The functions pause() and unpause() toggle the internal flag, and the modifiers ifPaused and ifNotPaused throw if the flag is not in the correct state.
-
-### Redirectable
-
-Redirectable provides a mechanism for contracts to be able to provide potential callees with the address of the contract that should be called instead of this one.  It is commonly used when a contract has been upgraded and should no longer be called.
+Managed provides full lifecycle management for contracts.  A managed contract provides a number of benefits.  The primary one is reducing the number of failed transactions by providing information about the state of the contract prior to sending transactions.  This cuts down on unnecessary network operations as well as reducing funds lost to transactions that will not complete successfully.
 
 ## Token
 
@@ -36,9 +32,13 @@ Redirectable provides a mechanism for contracts to be able to provide potential 
 
 ITokenStore is the interface for storing tokens as part of a token.
 
-### TokenStore
+### SimpleTokenStore
 
-TokenStore provides permissioned storage for an ERC-20 contract separate from the contract itself.  This separation of token logic and storage allows upgrades to token functionality without requiring expensive copying of the token allocation information.
+SimpleTokenStore provides permissioned storage for an ERC-20 contract separate from the contract itself.  This separation of token logic and storage allows upgrades to token functionality without requiring expensive copying of the token allocation information.
+
+### DividendTokenStore
+
+DividendTokenStore is an enhancement of the SimpleTokenStore that provides the ability to issue token-based dividends in an efficient manner.
 
 ### IERC20
 
