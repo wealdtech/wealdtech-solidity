@@ -18,13 +18,12 @@ import "../auth/Permissioned.sol";
 
 /**
  * @title Managed
- *        Managed provides full lifecycle management for contracts.
- *
- *        A managed contract provides a number of benefits.  The primary one is
- *        reducing the number of failed transactions by providing information
- *        about the state of the contract prior to sending transactions.  This
- *        cuts down on unnecessary network operations as well as reducing funds
- *        lost to transactions that will not complete successfully.
+ *        Managed provides full lifecycle management for contracts.  A managed
+ *        contract provides a number of benefits.  The primary one is reducing
+ *        the number of failed transactions by providing information about the
+ *        state of the contract prior to sending transactions.  This cuts down
+ *        on unnecessary network operations as well as reducing funds lost to
+ *        transactions that will not complete successfully.
  *  
  *        The managed contract also allows contracts to be superceded by new
  *        versions in a way that gives end users the chance to find out how to
@@ -32,28 +31,66 @@ import "../auth/Permissioned.sol";
  *
  *        The lifecycle of a managed contract is a simple state machine.  The
  *        possible states are:
- *          - deployed - contract has been deployed but is inoperational.  No
- *                       transactions should be made against this contract.
- *          - active - contract is running normally.  Transactions can be made
- *                     normally against this contract.
- *          - paused - contract has paused operations.  Transactions sent to
- *                     this contract will be rejected.  Use `pausedUntil()` to
- *                     obtain the time at which the contract is expected to be
- *                     unpaused.
- *          - upgraded - contract has been upgraded.  No transactions should be
- *                       made against this contract.
- *                       Use `supercededBy()` to obtain the address of the
- *                       contract that should be used instead (if any)
- *          - retired - contract is no longer in operation.  No transactions
- *                      should be made against this contract.
+ *          - deployed: contract has been deployed but is inoperational.  No
+ *                      transactions should be made against this contract.
+ *          - active: contract is running normally.  Transactions can be made
+ *                    normally against this contract.
+ *          - paused: contract has paused operations.  Transactions sent to
+ *                    this contract will be rejected.  Use `pausedUntil()` to
+ *                    obtain the time at which the contract is expected to be
+ *                    unpaused.
+ *          - upgraded: contract has been upgraded.  No transactions should be
+ *                      made against this contract.
  *                      Use `supercededBy()` to obtain the address of the
  *                      contract that should be used instead (if any)
+ *          - retired: contract is no longer in operation.  No transactions
+ *                     should be made against this contract.
+ *                     Use `supercededBy()` to obtain the address of the
+ *                     contract that should be used instead (if any)
+ *
+ *        Use of the contract is through two features: modifiers and functions.
+ *        There are four modifiers available: ifInState(), ifInEitherState(),
+ *        ifNotInState() and ifNotInEitherState().  Every function of a managed
+ *        contract, including constrant functions, should have one or more of
+ *        these modifiers.
+ *
+ *        Functions are used to move the contract from one managed state to
+ *        another.  Most of the functions are self-explanatory, but the
+ *        upgrade functions are worth looking at more closely.  Upgrading
+ *        consists of three steps: pre-upgrade, upgrade and post-upgrade.
+ *
+ *        The purpose of the pre-upgrade is to set the superceding contract up
+ *        so that it has the same abilities as the current contract.  This
+ *        most commonly involves setting up permissions on subsidiary contracts.
+ *
+ *        The purpose of the upgrade is to stop the operation of the current
+ *        contract.  It will set the state of the contract to 'upgraded' to
+ *        allow the contract to alter which functions will work.  It is
+ *        expected that an upgraded contract will refuse to operate after this
+ *        point.
+ *
+ *        Post-upgrade has two possibilities: commit the upgrade or revert it.
+ *        The usual path will be to commit the upgrade, at which point the
+ *        contract enters the 'retired' state and should do nothing other than
+ *        inform requesting contracts of the state and the address of the
+ *        superceding contract.
+ *
+ *        The second possibility is that the upgrade has given an undesired
+ *        result and needs to be reverted.  Reverting the upgrade returns the
+ *        contract to the active state and removes any permissions granted to
+ *        the was-superceding contract.
+ *
+ *        For each of the upgrade functions it is expected that implementing
+ *        contracts will have their own versions, in which case it is
+ *        important to remember that they should remember to call the super
+ *        functions.
  *
  *        Changing the state of the contract requires the caller to have the
  *        PERM_MANAGE_LIFECYCLE permission.
  *
- *        State of this contract: under active development; code and API
- *        may change.  Use at your own risk.
+ *        State of this contract: stable; development complete but the code is
+ *        unaudited. and may contain bugs and/or security holes. Use at your own
+ *        risk.
  *
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
