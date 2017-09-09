@@ -1,12 +1,9 @@
 pragma solidity ^0.4.11;
 
-
-import '../math/SafeMath.sol';
-import '../lifecycle/Pausable.sol';
-import '../lifecycle/Redirectable.sol';
-import './DividendTokenStore.sol';
-//import './SimpleTokenStore.sol';
 import './IERC20.sol';
+import '../lifecycle/Managed.sol';
+import '../math/SafeMath.sol';
+import './DividendTokenStore.sol';
 
 
 /**
@@ -48,7 +45,7 @@ import './IERC20.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract Token is IERC20, Pausable, Redirectable {
+contract Token is IERC20, Managed {
     using SafeMath for uint256;
 
     // The store for this token's definition, allowances and allocations
@@ -101,7 +98,7 @@ contract Token is IERC20, Pausable, Redirectable {
         revert();
     }
 
-    function totalSupply() public constant returns (uint256) {
+    function totalSupply() public constant ifInState(State.Active) returns (uint256) {
         return store.totalSupply();
     }
 
@@ -128,58 +125,50 @@ contract Token is IERC20, Pausable, Redirectable {
      *       Note that due to the packing the range of the value is restricted;
      *       very large transfers may not be able to be sent with this method.
      */
-    function bulkTransfer(uint256[] data) {
+    function bulkTransfer(uint256[] data) ifInState(State.Active) {
         uint256 len = data.length;
         for (uint256 i = 0; i < len; i++) {
             transfer(address(data[i] & ADDRESS_MASK), data[i] >> 160);
         }
     }
 
-    address private upgradeAddress;
-
     /**
      * @dev Carry out operations prior to upgrading to a new contract.
      *      This should give the new contract access to the token store.
      */
-    function preUpgrade(address _upgradeAddress) public ifPermitted(msg.sender, PERM_UPGRADE) {
+    function preUpgrade(address _supercededBy) public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
         // Add the new contract to the list of superusers of the token store
-        store.setPermission(_upgradeAddress, PERM_SUPERUSER, true);
-        // Retain the contract address for later
-        upgradeAddress = _upgradeAddress;
+        store.setPermission(_supercededBy, PERM_SUPERUSER, true);
+        super.preUpgrade(_supercededBy);
     }
 
     /**
      * @dev Carry out operations when upgrading to a new contract.
      */
-    function upgrade() public ifPermitted(msg.sender, PERM_UPGRADE) {
-        require(upgradeAddress != 0);
-        if (!paused) {
-            pause();
-        }
-        setRedirect(upgradeAddress);
-        upgradeAddress = 0;
+    function upgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
+        super.upgrade();
     }
 
     /**
-     * @dev Carry out operations after upgrading to a new contract.
-     *      This should shut this contract down permanently.
+     * @dev Commit the upgrade.  No going back from here
      */
-    function postUpgrade() ifPermitted(msg.sender, PERM_UPGRADE) {
+    function commitUpgrade() ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
         // Remove ourself from the list of superusers of the token store
         store.setPermission(this, PERM_SUPERUSER, false);
+        super.commitUpgrade();
     }
 
-    function cancelUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) {
+    /**
+     * @dev revert the upgrade.  Will only work prior to committing
+     */
+    function revertUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
         // Remove the contract from the list of superusers of the token store.
-        // Note that if this is called after postUpgrade() then it will fail
+        // Note that if this is called after commitUpgrade() then it will fail
         // as we will no longer have permission to do this.
-        store.setPermission(upgradeAddress, PERM_SUPERUSER, false);
-        upgradeAddress = 0;
-
-        // Unpause ourself if we were paused
-        if (paused) {
-            unpause();
+        if (supercededBy != 0) {
+            store.setPermission(supercededBy, PERM_SUPERUSER, false);
         }
+        super.revertUpgrade();
     }
 
     /**
@@ -190,7 +179,7 @@ contract Token is IERC20, Pausable, Redirectable {
      *      function is called.
      * @param _amount the amount of the dividend to issue (in the common unit)
      */
-    function issueDividend(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) {
+    function issueDividend(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) ifInState(State.Active) {
         store.issueDividend(msg.sender, _amount * uint256(10) ** store.decimals());
     }
 
@@ -198,7 +187,7 @@ contract Token is IERC20, Pausable, Redirectable {
      * @dev mint more tokens
      * @param _amount the amount of tokens to mint (in the common unit)
      */
-    function mint(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) {
+    function mint(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
         store.mint(msg.sender, _amount * uint256(10) ** store.decimals());
     }
 
@@ -206,28 +195,28 @@ contract Token is IERC20, Pausable, Redirectable {
     // Standard ERC-20 functions
     //
 
-    function transfer(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) returns (bool) {
+    function transfer(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
         require(_recipient != 0 && _recipient != address(this));
         store.transfer(msg.sender, _recipient, _value);
         Transfer(msg.sender, _recipient, _value);
         return true;
     }
 
-    function balanceOf(address _owner) constant sync(_owner) returns (uint256) {
+    function balanceOf(address _owner) public constant sync(_owner) ifInState(State.Active) returns (uint256) {
         return store.balanceOf(_owner);
     }
 
-    function allowance(address _owner, address _recipient) sync(_owner) constant returns (uint256) {
+    function allowance(address _owner, address _recipient) sync(_owner) public constant ifInState(State.Active) returns (uint256) {
         return store.allowanceOf(_owner, _recipient);
     }
 
-    function transferFrom(address _owner, address _recipient, uint256 _value) sync(msg.sender) sync(_owner) sync(_recipient) returns (bool) {
+    function transferFrom(address _owner, address _recipient, uint256 _value) sync(msg.sender) sync(_owner) sync(_recipient) ifInState(State.Active) returns (bool) {
         store.useAllowance(_owner, msg.sender, _recipient, _value);
         Transfer(_owner, _recipient, _value);
         return true;
     }
 
-    function approve(address _recipient, uint256 _value) returns (bool) {
+    function approve(address _recipient, uint256 _value) ifInState(State.Active) returns (bool) {
         require(_recipient != 0 && _recipient != address(this));
         store.setAllowance(msg.sender, _recipient, _value);
         Approval(msg.sender, _recipient, _value);

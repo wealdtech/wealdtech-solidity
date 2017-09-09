@@ -30,28 +30,27 @@ import "../auth/Permissioned.sol";
  *        versions in a way that gives end users the chance to find out how to
  *        access the new version of the contract, leading to easier maintenance.
  *
- *        The lifecycle of a managed contract is a simple state machine. 
- *          - deploy - contract has been deployed but is inoperational.  No transactions should be made against this contract.
- *          - test - contract is undergoing tests.  No transactions of high value should be made against this contract.
- *          - active - contract is running normally.  Transactions can be made normally against this contract
- *          - paused - contract has paused operations.  Transactions can be made normally against this contract.  Use `pausedUntil()` to obtain time time when the contract is expected to be unpaused
- *          - superceded - contract has been superceded by a new contract.  No transactions should be made against this contract.  Use `supercededBy()` to obtain the address of the contract that should be used instead
- *          - retired - contract is no longer in operation.  No transactions should be made against this contract.
+ *        The lifecycle of a managed contract is a simple state machine.  The
+ *        possible states are:
+ *          - deployed - contract has been deployed but is inoperational.  No
+ *                       transactions should be made against this contract.
+ *          - active - contract is running normally.  Transactions can be made
+ *                     normally against this contract.
+ *          - paused - contract has paused operations.  Transactions sent to
+ *                     this contract will be rejected.  Use `pausedUntil()` to
+ *                     obtain the time at which the contract is expected to be
+ *                     unpaused.
+ *          - upgraded - contract has been upgraded.  No transactions should be
+ *                       made against this contract.
+ *                       Use `supercededBy()` to obtain the address of the
+ *                       contract that should be used instead (if any)
+ *          - retired - contract is no longer in operation.  No transactions
+ *                      should be made against this contract.
+ *                      Use `supercededBy()` to obtain the address of the
+ *                      contract that should be used instead (if any)
  *
- *        pausedUntil() - the time when the contract is expected to be unpaused
- *        supercededBy() - the address of the contract to use instead of this
- *
- *        Pausable provides a toggle for the operation of contract functions.
- *        This is accomplished through a combination of functions and
- *        modifiers.  The functions pause() and unpause() toggle the internal
- *        flag, and the modifiers ifPaused and ifNotPaused throw if the flag
- *        is not in the correct state.
- * 
- *        Calling pause() and unpause() requires the caller to have the
- *        PERM_PAUSE permission.
- *
- *        Note that an attempt to pause() an already-paused contract, or to
- *        unpause() an unpaused contract, will throw.
+ *        Changing the state of the contract requires the caller to have the
+ *        PERM_MANAGE_LIFECYCLE permission.
  *
  *        State of this contract: under active development; code and API
  *        may change.  Use at your own risk.
@@ -63,7 +62,13 @@ import "../auth/Permissioned.sol";
  */
 contract Managed is Permissioned {
     // The possible states of a managed contract
-    enum State { Deployed, Testing, Active, Paused, Superceded, Retired }
+    enum State {
+        Deployed,
+        Active,
+        Paused,
+        Upgraded,
+        Retired
+    }
 
     // The current state of the contract
     State public currentState;
@@ -93,10 +98,26 @@ contract Managed is Permissioned {
     }
 
     /**
+     * @dev allow actions only if the contract is in either of two given states
+     */
+    modifier ifInEitherState(State _state1, State _state2) {
+        require(currentState == _state1 || currentState == _state2);
+        _;
+    }
+
+    /**
      * @dev allow actions only if the contract is not in a given state
      */
     modifier ifNotInState(State _state) {
         require(currentState != _state);
+        _;
+    }
+
+    /**
+     * @dev allow actions only if the contract is not in either of two given states
+     */
+    modifier ifNotInEitherState(State _state1, State _state2) {
+        require(currentState != _state1 && currentState != _state2);
         _;
     }
 
@@ -108,47 +129,93 @@ contract Managed is Permissioned {
     }
 
     /**
-     * @dev Move contract from the 'deployed' state to the 'testing' state
-     */
-    function deployedToTesting() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Deployed) {
-        currentState = State.Testing;
-    }
-
-    /**
      * @dev Move contract from the 'testing' state to the 'active' state
      */
-    function testingToActive() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Testing) {
+    function activate() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Deployed) {
         currentState = State.Active;
+        StateChange(State.Active);
     }
 
     /**
      * @dev Move contract from the 'active' state to the 'paused' state
+     * @param _pausedUntil the expected time at which the contract will be
+     *        unpaused.
      */
-    function activeToPaused(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
+    function pause(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
         currentState = State.Paused;
         pausedUntil = _pausedUntil;
+        StateChange(State.Paused);
+        PausedUntil(pausedUntil);
+    }
+
+    /**
+     * @dev Update the expected time at which the contract will be unpaused
+     * @param _pausedUntil the expected time at which the contract will be
+     *        unpaused.
+     */
+    function setPausedUntil(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
+        require(_pausedUntil > block.timestamp);
+        pausedUntil = _pausedUntil;
+        PausedUntil(pausedUntil);
     }
 
     /**
      * @dev Move contract from the 'paused' state to the 'active' state
      */
-    function pausedToActive() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
+    function unpause() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
         currentState = State.Active;
         pausedUntil = 0;
+        StateChange(State.Active);
     }
 
     /**
-     * @dev Move contract to the 'active' state from the 'superceded' state
+     * @dev Move contract from the 'active' state to the 'retired' state
      */
-    function activeToSuperceded(address _supercededBy) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
-        currentState = State.Superceded;
+    function retire() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
+        currentState = State.Retired;
+        StateChange(State.Retired);
+    }
+
+    /**
+     * @dev Carry out procedures prior to upgrading.
+     *      This carries out preparation work before an upgrade takes place.
+     * @param _supercededBy the address of the contract that will supercede
+     *        this one.
+     */
+    function preUpgrade(address _supercededBy) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
+        // Retain the address of the new contract
         supercededBy = _supercededBy;
     }
 
     /**
-     * @dev Move contract to the 'active' state from the 'paused' state
+     * @dev Upgrade.
+     *      This carries out the upgrade to the new contract.
      */
-    function activeToRetired() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
+    function upgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
+        require(supercededBy != 0);
+        // Mark this contract as upgraded
+        currentState = State.Upgraded;
+        StateChange(State.Upgraded);
+        SupercededBy(supercededBy);
+    }
+
+    /**
+     * @dev commitUpgrade.
+     *      This finalises the upgrade; after this it cannot be reverted.
+     */
+    function commitUpgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Upgraded) {
+        // Mark this contract as retired
         currentState = State.Retired;
+        StateChange(State.Retired);
+    }
+
+    /**
+     * @dev Revert an upgrade
+     *      This should only be called after 'upgrade'
+     */
+    function revertUpgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Upgraded) {
+        currentState = State.Active;
+        supercededBy = 0;
+        StateChange(State.Active);
     }
 }
