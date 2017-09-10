@@ -150,5 +150,5 @@ contract SimpleTokenStore is ITokenStore {
     }
 
     // Nothing to sync
-    function sync(address _address) {}
+    function sync(address) {}
 }
