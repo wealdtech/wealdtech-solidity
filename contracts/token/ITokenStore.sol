@@ -52,7 +52,7 @@ contract ITokenStore is Permissioned {
     /**
      * @dev Obtain a balance.
      */
-    function balanceOf(address _owner) public constant returns (uint256);
+    function balanceOf(address _account) public constant returns (uint256);
 
     /**
      * @dev Set an allowance for a (sender, recipient) pair
@@ -92,9 +92,10 @@ contract ITokenStore is Permissioned {
 
     /**
      * @dev Synchronise the data for an account.
-     *      This function must be called before any operation to view or alter
-     *      the named account is undertaken, otherwise users risk obtaining
-     *      incorrect information.
+     *      This function must be called before any non-constant operation to
+     *      view or alter the named account is undertaken, otherwise users risk
+     *      obtaining incorrect information.
+     * @param _account The account to synchronise
      */
     function sync(address _account) public;
 }

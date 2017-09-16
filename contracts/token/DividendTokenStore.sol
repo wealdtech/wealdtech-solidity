@@ -86,10 +86,11 @@ contract DividendTokenStore is SimpleTokenStore {
     }
 
     /**
-     * @dev Synchronise the account details.
-     *      Sync must be called by a modifier for any function that looks at or
-     *      changes details of an account, even if that function is constant.
-     * @param _account the account for which to synchronise the balance.
+     * @dev Synchronise the data for an account.
+     *      This function must be called before any non-constant operation to
+     *      view or alter the named account is undertaken, otherwise users risk
+     *      obtaining incorrect information.
+     * @param _account The account to synchronise
      */
     function sync(address _account) public {
         var accountDividend = dividendsOwing(_account);
@@ -97,6 +98,13 @@ contract DividendTokenStore is SimpleTokenStore {
             transfer(DIVIDEND_ADDRESS, _account, accountDividend);
             nextDividends[_account] = dividends.length;
         }
+    }
+
+    /**
+     * @dev Obtain a balance.
+     */
+    function balanceOf(address _account) public constant returns (uint256 balance) {
+        return balances[_account] + dividendsOwing(_account);
     }
 
     /**

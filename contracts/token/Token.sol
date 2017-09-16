@@ -13,21 +13,19 @@ import './DividendTokenStore.sol';
  *        transfers, efficient dividends, and easy upgrading.
  *
  *        The token is fully permissioned.  Permissions to carry out operations
- *        can be given to one or more addresses.  This increases the flexibility
- *        of the contract without increasing risk
- *
- *        Operations on the contract can be halted if required.
+ *        can be given to one or more addresses.  This increases the power of
+ *        the contract without increasing risk.
  *
  *        The ledger for the token is stored in a separate contract.  This is
  *        invisible to the user but provides a clean separateion of logic and
  *        storage.
  *
- *        Upgradeable.  It is possible to upgrade the token logic to a new
- *        contract relatively cheaply.  The functions for upgrading are built
- *        in to the contract to provide a well-defined path.
+ *        This token follows the Wealdtech managed lifecycle, allowing for the
+ *        token to be paused, redirected etc.  See `Managed` for more details.
  *
- *        Redirectable.  If this contract is retired as part of an upgrade it
- *        can supply the address of the upgraded contract on request.
+ *        It is possible to upgrade the token logic to a new contract
+ *        relatively cheaply.  The functions for upgrading are built in to the
+ *        contract to provide a well-defined path.
  *
  *        Transfers of tokens from a single source to multiple recipients can
  *        be carried out in a gas-efficient manner, often halving the gas cost
@@ -60,7 +58,7 @@ contract Token is IERC20, Managed {
     bytes32 internal constant PERM_UPGRADE = keccak256("token: upgrade");
 
     // This modifier syncs the data of the given account.  It *must* be
-    // attached to every function that interacts with the token store for *all*
+    // attached to every function that interacts with balances for *all*
     // participants in the function.
     modifier sync(address _account) {
         store.sync(_account);
@@ -74,14 +72,16 @@ contract Token is IERC20, Managed {
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _decimals the number of decimal places of the common unit (commonly 18)
-     * @param _totalSupply the total supply (in the common unit)
+     * @param _totalSupply the total supply of tokens
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
     function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) {
         if (_store == 0) {
             store = new DividendTokenStore(_name, _symbol, _decimals);
-            store.mint(msg.sender, _totalSupply * uint256(10) ** _decimals);
-            Transfer(0, msg.sender, store.totalSupply());
+            if (_totalSupply > 0) {
+                store.mint(msg.sender, _totalSupply);
+                Transfer(0, msg.sender, store.totalSupply());
+            }
         } else {
             store = DividendTokenStore(_store);
         }
@@ -174,18 +174,19 @@ contract Token is IERC20, Managed {
      *      allocated to all existing token holders (including the sender) in
      *      proportion to the number of tokens they hold at the time this
      *      function is called.
-     * @param _amount the amount of the dividend to issue (in the common unit)
+     * @param _amount the amount of the dividend to issue
      */
     function issueDividend(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) ifInState(State.Active) {
-        store.issueDividend(msg.sender, _amount * uint256(10) ** store.decimals());
+        store.issueDividend(msg.sender, _amount);
     }
 
     /**
      * @dev mint more tokens
-     * @param _amount the amount of tokens to mint (in the common unit)
+     * @param _amount the amount of tokens to mint
      */
     function mint(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
-        store.mint(msg.sender, _amount * uint256(10) ** store.decimals());
+        store.mint(msg.sender, _amount);
+        Transfer(0, msg.sender, _amount);
     }
 
     //
@@ -193,17 +194,17 @@ contract Token is IERC20, Managed {
     //
 
     function transfer(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
-        require(_recipient != 0 && _recipient != address(this));
+        require(_recipient != address(this));
         store.transfer(msg.sender, _recipient, _value);
         Transfer(msg.sender, _recipient, _value);
         return true;
     }
 
-    function balanceOf(address _owner) public constant sync(_owner) ifInState(State.Active) returns (uint256) {
+    function balanceOf(address _owner) public constant ifInState(State.Active) returns (uint256) {
         return store.balanceOf(_owner);
     }
 
-    function allowance(address _owner, address _recipient) sync(_owner) public constant ifInState(State.Active) returns (uint256) {
+    function allowance(address _owner, address _recipient) public constant ifInState(State.Active) returns (uint256) {
         return store.allowanceOf(_owner, _recipient);
     }
 
@@ -213,8 +214,8 @@ contract Token is IERC20, Managed {
         return true;
     }
 
-    function approve(address _recipient, uint256 _value) ifInState(State.Active) returns (bool) {
-        require(_recipient != 0 && _recipient != address(this));
+    function approve(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
+        require(_recipient != address(this));
         store.setAllowance(msg.sender, _recipient, _value);
         Approval(msg.sender, _recipient, _value);
         return true;
