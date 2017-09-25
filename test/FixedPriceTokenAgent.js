@@ -4,8 +4,6 @@ const assertJump = require('./helpers/assertJump');
 const FixedPriceTokenAgent = artifacts.require('./token/FixedPriceTokenAgent.sol');
 const TestToken = artifacts.require('./samplecontracts/TestToken.sol');
 
-const sha3 = require('solidity-sha3').default;
-
 contract('FixedPriceTokenAgent', accounts => {
     const tokenOwner = accounts[0];
     const faucetOwner = accounts[1];

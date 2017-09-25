@@ -3,8 +3,6 @@
 const assertJump = require('./helpers/assertJump');
 const Token = artifacts.require('./Token.sol');
 
-const sha3 = require('solidity-sha3').default;
-
 function pack(addr, value) {
     return '0x' + ('000000000000000000000000' + value.toString(16)).slice(-24) + addr.slice(2);
 }
