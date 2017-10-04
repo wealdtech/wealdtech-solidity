@@ -16,13 +16,13 @@ pragma solidity ^0.4.11;
 
 // Important parts of the ENS registry contract
 contract RegistryRef {
-    function owner(bytes32 node) constant returns (address);
+    function owner(bytes32 node) public constant returns (address);
 }
 
 
 // Important parts of the ENS reverse registrar contract
 contract ReverseRegistrarRef {
-    function setName(string name) returns (bytes32 node);
+    function setName(string name) public returns (bytes32 node);
 }
 
 
@@ -60,7 +60,7 @@ contract ENSReverseRegister {
     /**
      * @dev initialise the contract with the address of the reverse registrar
      */
-    function ENSReverseRegister(address registry, string name) {
+    function ENSReverseRegister(address registry, string name) public {
         if (registry != 0) {
             // Fetch the address of the ENS reverse registrar
             // Hex value is namehash('addr.reverse')

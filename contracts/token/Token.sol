@@ -189,6 +189,17 @@ contract Token is IERC20, Managed {
         Transfer(0, msg.sender, _amount);
     }
 
+    /**
+      * @dev combine approval of spending tokens and calling the function that spends the tokens
+      */
+    function approveAndCall(address _recipient, uint256 _amount, bytes _extraData) sync(msg.sender) sync(_recipient) returns (bool success) {
+        approve(_recipient, _amount);
+
+        // Make the call
+        require(_recipient.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _amount, this, _extraData));
+        return true;
+    }
+
     //
     // Standard ERC-20 functions
     //

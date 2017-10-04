@@ -53,7 +53,7 @@ contract Permissioned {
      * @dev The Permissioned constructor gives the contract creator the
      * superuser permission with the ability to change permissions.
      */
-    function Permissioned() {
+    function Permissioned() public {
         permissions[msg.sender][PERM_SUPERUSER] = true;
     }
 
@@ -75,7 +75,7 @@ contract Permissioned {
     /**
      * @dev Set or reset a permission.
      */
-    function setPermission(address addr, bytes32 permission, bool allowed) ifPermitted(msg.sender, PERM_SUPERUSER) {
+    function setPermission(address addr, bytes32 permission, bool allowed) public ifPermitted(msg.sender, PERM_SUPERUSER) {
         permissions[addr][permission] = allowed;
     }
 }
