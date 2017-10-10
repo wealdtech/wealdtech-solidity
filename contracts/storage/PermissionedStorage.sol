@@ -25,7 +25,7 @@ import "../auth/Permissioned.sol";
  *        permission.
  *
  *        Note that permissions are all-or-nothing, so this contract should not
- *        be shared between multiple parties that might have differing
+ *        be shared between multiple parties that might require differing
  *        permissions.
  *
  *        State of this contract: under active development; code and API
@@ -41,7 +41,7 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => uint256) UInt256Storage;
 
-    function getUInt256(bytes32 record) constant public returns (uint256) {
+    function getUInt256(bytes32 record) public constant returns (uint256) {
         return UInt256Storage[record];
     }
 
@@ -51,7 +51,7 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => string) StringStorage;
 
-    function getString(bytes32 record) constant returns (string) {
+    function getString(bytes32 record) public constant returns (string) {
         return StringStorage[record];
     }
 
@@ -61,7 +61,7 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => address) AddressStorage;
 
-    function getAddress(bytes32 record) constant returns (address) {
+    function getAddress(bytes32 record) public constant returns (address) {
         return AddressStorage[record];
     }
 
@@ -71,7 +71,7 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => bytes) BytesStorage;
 
-    function getBytes(bytes32 record) constant returns (bytes) {
+    function getBytes(bytes32 record) public constant returns (bytes) {
         return BytesStorage[record];
     }
 
@@ -81,7 +81,7 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => bool) BooleanStorage;
 
-    function getBoolean(bytes32 record) constant returns (bool) {
+    function getBoolean(bytes32 record) public constant returns (bool) {
         return BooleanStorage[record];
     }
 
@@ -89,13 +89,13 @@ contract PermissionedStorage is Permissioned {
         BooleanStorage[record] = value;
     }
     
-    mapping(bytes32 => int) IntStorage;
+    mapping(bytes32 => int256) Int256Storage;
 
-    function getInt(bytes32 record) constant returns (int) {
-        return IntStorage[record];
+    function getInt256(bytes32 record) public constant returns (int256) {
+        return Int256Storage[record];
     }
 
-    function setInt(bytes32 record, int value) public ifPermitted(msg.sender, PERM_WRITE) {
-        IntStorage[record] = value;
+    function setInt256(bytes32 record, int256 value) public ifPermitted(msg.sender, PERM_WRITE) {
+        Int256Storage[record] = value;
     }
 }

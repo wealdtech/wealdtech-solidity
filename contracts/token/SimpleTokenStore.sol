@@ -69,10 +69,7 @@ contract SimpleTokenStore is ITokenStore {
      * @dev Constructor
      *      This is usually called by a token contract.
      */
-    function SimpleTokenStore(string _name, string _symbol, uint8 _decimals) {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
+    function SimpleTokenStore() public {
     }
 
     /**
@@ -86,7 +83,7 @@ contract SimpleTokenStore is ITokenStore {
     /**
      * @dev Mint tokens and allocate them to a recipient.
      */
-    function mint(address _recipient, uint256 _amount) ifPermitted(msg.sender, PERM_MINT) {
+    function mint(address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_MINT) {
         balances[_recipient] = balances[_recipient].add(_amount);
         totalSupply = totalSupply.add(_amount);
     }
@@ -150,5 +147,5 @@ contract SimpleTokenStore is ITokenStore {
     }
 
     // Nothing to sync
-    function sync(address) {}
+    function sync(address) public {}
 }

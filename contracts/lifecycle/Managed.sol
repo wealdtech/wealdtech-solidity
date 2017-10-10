@@ -161,7 +161,7 @@ contract Managed is Permissioned {
     /**
      * @dev Managed constructor.  Set the state to deployed.
      */
-    function Managed() {
+    function Managed() public {
         currentState = State.Deployed;
     }
 

@@ -48,7 +48,7 @@ contract Pausable is Permissioned {
     bytes32 internal constant PERM_PAUSE = keccak256("_pausable");
 
     /**
-     * @dev modifier to allow actions only when the contract IS paused
+     * @dev modifier to continue only if the contract is not paused
      */
     modifier ifNotPaused() {
         require(!paused);
@@ -56,7 +56,7 @@ contract Pausable is Permissioned {
     }
 
     /**
-     * @dev modifier to allow actions only when the contract IS NOT paused
+     * @dev modifier to continue only if the contract is paused
      */
     modifier ifPaused {
         require(paused);
@@ -64,7 +64,7 @@ contract Pausable is Permissioned {
     }
 
     /**
-     * @dev called by the owner to pause, triggers stopped state
+     * @dev pause the contract
      */
     function pause() public ifPermitted(msg.sender, PERM_PAUSE) ifNotPaused returns (bool) {
         paused = true;
@@ -73,7 +73,7 @@ contract Pausable is Permissioned {
     }
 
     /**
-     * @dev called by the owner to unpause, returns to normal state
+     * @dev unpause the contract
      */
     function unpause() public ifPermitted(msg.sender, PERM_PAUSE) ifPaused returns (bool) {
         paused = false;

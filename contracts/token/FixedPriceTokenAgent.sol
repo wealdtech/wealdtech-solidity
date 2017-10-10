@@ -41,7 +41,7 @@ contract FixedPriceTokenAgent is ITokenAgent {
     // The number of tokens per Wei.
     uint256 tokensPerWei;
 
-    function FixedPriceTokenAgent(IERC20 _token, uint256 _tokensPerWei) {
+    function FixedPriceTokenAgent(IERC20 _token, uint256 _tokensPerWei) public {
         token = _token;
         require(_tokensPerWei > 0);
         tokensPerWei = _tokensPerWei;

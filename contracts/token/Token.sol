@@ -46,7 +46,11 @@ import './DividendTokenStore.sol';
 contract Token is IERC20, Managed {
     using SafeMath for uint256;
 
-    // The store for this token's definition, allowances and allocations
+    // Definition for the token
+    string public name;
+    string public symbol;
+    uint8 public decimals;
+    // The store for this token's allowances and allocations
     DividendTokenStore public store;
 
     // The mask for the address as part of a uint256 for bulkTransfer()
@@ -75,9 +79,12 @@ contract Token is IERC20, Managed {
      * @param _totalSupply the total supply of tokens
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
-    function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) {
+    function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) public {
+            name = _name;
+            symbol = _symbol;
+            decimals = _decimals;
         if (_store == 0) {
-            store = new DividendTokenStore(_name, _symbol, _decimals);
+            store = new DividendTokenStore();
             if (_totalSupply > 0) {
                 store.mint(msg.sender, _totalSupply);
                 Transfer(0, msg.sender, store.totalSupply());
@@ -93,6 +100,18 @@ contract Token is IERC20, Managed {
      */
     function () public payable {
         revert();
+    }
+
+    function name() public constant ifInState(State.Active) returns (string) {
+        return name;
+    }
+
+    function symbol() public constant ifInState(State.Active) returns (string) {
+        return symbol;
+    }
+
+    function decimals() public constant ifInState(State.Active) returns (uint8) {
+        return decimals;
     }
 
     function totalSupply() public constant ifInState(State.Active) returns (uint256) {
@@ -122,7 +141,7 @@ contract Token is IERC20, Managed {
      *       Note that due to the packing the range of the value is restricted;
      *       very large transfers may not be able to be sent with this method.
      */
-    function bulkTransfer(uint256[] data) ifInState(State.Active) {
+    function bulkTransfer(uint256[] data) public ifInState(State.Active) {
         uint256 len = data.length;
         for (uint256 i = 0; i < len; i++) {
             transfer(address(data[i] & ADDRESS_MASK), data[i] >> 160);
@@ -149,7 +168,7 @@ contract Token is IERC20, Managed {
     /**
      * @dev Commit the upgrade.  No going back from here
      */
-    function commitUpgrade() ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
+    function commitUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
         // Remove ourself from the list of superusers of the token store
         store.setPermission(this, PERM_SUPERUSER, false);
         super.commitUpgrade();
@@ -176,7 +195,7 @@ contract Token is IERC20, Managed {
      *      function is called.
      * @param _amount the amount of the dividend to issue
      */
-    function issueDividend(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) ifInState(State.Active) {
+    function issueDividend(uint256 _amount) public sync(msg.sender) ifPermitted(msg.sender, PERM_ISSUE_DIVIDEND) ifInState(State.Active) {
         store.issueDividend(msg.sender, _amount);
     }
 
@@ -184,7 +203,7 @@ contract Token is IERC20, Managed {
      * @dev mint more tokens
      * @param _amount the amount of tokens to mint
      */
-    function mint(uint256 _amount) sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
+    function mint(uint256 _amount) public sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
         store.mint(msg.sender, _amount);
         Transfer(0, msg.sender, _amount);
     }
@@ -192,7 +211,7 @@ contract Token is IERC20, Managed {
     /**
       * @dev combine approval of spending tokens and calling the function that spends the tokens
       */
-    function approveAndCall(address _recipient, uint256 _amount, bytes _extraData) sync(msg.sender) sync(_recipient) returns (bool success) {
+    function approveAndCall(address _recipient, uint256 _amount, bytes _extraData) public sync(msg.sender) sync(_recipient) returns (bool success) {
         approve(_recipient, _amount);
 
         // Make the call
@@ -204,7 +223,7 @@ contract Token is IERC20, Managed {
     // Standard ERC-20 functions
     //
 
-    function transfer(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
+    function transfer(address _recipient, uint256 _value) public sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
         require(_recipient != address(this));
         store.transfer(msg.sender, _recipient, _value);
         Transfer(msg.sender, _recipient, _value);
@@ -219,13 +238,13 @@ contract Token is IERC20, Managed {
         return store.allowanceOf(_owner, _recipient);
     }
 
-    function transferFrom(address _owner, address _recipient, uint256 _value) sync(msg.sender) sync(_owner) sync(_recipient) ifInState(State.Active) returns (bool) {
+    function transferFrom(address _owner, address _recipient, uint256 _value) public sync(msg.sender) sync(_owner) sync(_recipient) ifInState(State.Active) returns (bool) {
         store.useAllowance(_owner, msg.sender, _recipient, _value);
         Transfer(_owner, _recipient, _value);
         return true;
     }
 
-    function approve(address _recipient, uint256 _value) sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
+    function approve(address _recipient, uint256 _value) public sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
         require(_recipient != address(this));
         store.setAllowance(msg.sender, _recipient, _value);
         Approval(msg.sender, _recipient, _value);

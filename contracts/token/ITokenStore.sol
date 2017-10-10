@@ -33,9 +33,6 @@ import '../auth/Permissioned.sol';
 contract ITokenStore is Permissioned {
 
     // Common variables for all token stores
-    string public name;
-    string public symbol;
-    uint8 public decimals;
     uint256 public totalSupply;
 
     /**

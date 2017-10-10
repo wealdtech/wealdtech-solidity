@@ -68,12 +68,12 @@ contract DividendTokenStore is SimpleTokenStore {
      * @dev Constructor
      *      This is usually called by a token contract.
      */
-    function DividendTokenStore(string _name, string _symbol, uint8 _decimals) SimpleTokenStore(_name, _symbol, _decimals) { }
+    function DividendTokenStore() public SimpleTokenStore() { }
 
     /**
      * @dev obtain the dividend(s) owing to a given account.
      */
-    function dividendsOwing(address _account) internal returns(uint256) {
+    function dividendsOwing(address _account) internal constant returns(uint256) {
         uint256 initialBalance = balances[_account];
         uint256 balance = initialBalance;
         // Iterate over all outstanding dividends
