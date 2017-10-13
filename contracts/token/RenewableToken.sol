@@ -7,7 +7,7 @@ import './DividendTokenStore.sol';
 
 
 /**
- * @title Token
+ * @title RenewableToken
  *        Token is an ERC-20 compliant token implementation with significantly
  *        upgraded functionality including a separate token store, cheap bulk
  *        transfers, efficient dividends, and easy upgrading.
@@ -80,9 +80,9 @@ contract Token is IERC20, Managed {
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
     function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) public {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
+            name = _name;
+            symbol = _symbol;
+            decimals = _decimals;
         if (_store == 0) {
             store = new DividendTokenStore();
             if (_totalSupply > 0) {
