@@ -76,7 +76,8 @@ contract Token is IERC20, Managed {
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _decimals the number of decimal places of the common unit (commonly 18)
-     * @param _totalSupply the total supply of tokens
+     * @param _totalSupply the total supply of tokens.  This is in base units, so if for example
+     *        you want 100 tokens with 3 decimal places you would create 100000 tokens (100 * 10^3)
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
     function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) public {
