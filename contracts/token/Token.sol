@@ -61,6 +61,10 @@ contract Token is IERC20, Managed {
     bytes32 internal constant PERM_ISSUE_DIVIDEND = keccak256("token: issue dividend");
     bytes32 internal constant PERM_UPGRADE = keccak256("token: upgrade");
 
+    // Non-standard events for minting and burning tokens
+    event Mint(address _holder, uint256 _amount);
+    event Burn(address _holder, uint256 _amount);
+
     // This modifier syncs the data of the given account.  It *must* be
     // attached to every function that interacts with balances for *all*
     // participants in the function.
@@ -207,6 +211,17 @@ contract Token is IERC20, Managed {
     function mint(uint256 _amount) public sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
         store.mint(msg.sender, _amount);
         Transfer(0, msg.sender, _amount);
+        Mint(msg.sender, _amount);
+    }
+
+    /**
+     * @dev burn existing tokens
+     * @param _amount the amount of tokens to burn
+     */
+    function burn(uint256 _amount) public sync(msg.sender) ifInState(State.Active) {
+        store.burn(msg.sender, _amount);
+        Transfer(msg.sender, 0, _amount);
+        Burn(msg.sender, _amount);
     }
 
     /**

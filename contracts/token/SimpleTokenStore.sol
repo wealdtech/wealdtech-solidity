@@ -89,6 +89,14 @@ contract SimpleTokenStore is ITokenStore {
     }
 
     /**
+     * @dev Burn tokens and remove them from the total supply
+     */
+    function burn(address _holder, uint256 _amount) public {
+        balances[_holder] = balances[_holder].sub(_amount);
+        totalSupply = totalSupply.sub(_amount);
+    }
+
+    /**
      * @dev Transfer tokens directly from owner to recipient, bypassing
      *      allowances.
      */
