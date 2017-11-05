@@ -49,12 +49,16 @@ contract Permissioned {
     // The superuser permission
     bytes32 internal constant PERM_SUPERUSER = keccak256("_superuser");
 
+    // Emitted whenever a permission is changed
+    event PermissionChanged(address indexed account, bytes32 indexed permission, bool value);
+
     /**
      * @dev The Permissioned constructor gives the contract creator the
      * superuser permission with the ability to change permissions.
      */
     function Permissioned() public {
         permissions[msg.sender][PERM_SUPERUSER] = true;
+        PermissionChanged(msg.sender, PERM_SUPERUSER, true);
     }
 
     /**
@@ -77,5 +81,6 @@ contract Permissioned {
      */
     function setPermission(address addr, bytes32 permission, bool allowed) public ifPermitted(msg.sender, PERM_SUPERUSER) {
         permissions[addr][permission] = allowed;
+        PermissionChanged(addr, permission, allowed);
     }
 }
