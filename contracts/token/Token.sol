@@ -17,7 +17,7 @@ import './DividendTokenStore.sol';
  *        the contract without increasing risk.
  *
  *        The ledger for the token is stored in a separate contract.  This is
- *        invisible to the user but provides a clean separateion of logic and
+ *        invisible to the user but provides a clean separation of logic and
  *        storage.
  *
  *        This token follows the Wealdtech managed lifecycle, allowing for the
@@ -231,7 +231,7 @@ contract Token is IERC20, Managed {
         approve(_recipient, _amount);
 
         // Make the call
-        require(_recipient.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _amount, this, _extraData));
+        _recipient.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _amount, this, _extraData);
         return true;
     }
 

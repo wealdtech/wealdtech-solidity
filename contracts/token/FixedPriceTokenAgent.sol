@@ -38,11 +38,15 @@ contract FixedPriceTokenAgent is ITokenAgent {
     // The token being sold
     IERC20 token;
 
+    // The provider of the tokens we are selling
+    address provider;
+
     // The number of tokens per Wei.
     uint256 tokensPerWei;
 
-    function FixedPriceTokenAgent(IERC20 _token, uint256 _tokensPerWei) public {
+    function FixedPriceTokenAgent(IERC20 _token, address _provider, uint256 _tokensPerWei) public {
         token = _token;
+        provider = _provider;
         require(_tokensPerWei > 0);
         tokensPerWei = _tokensPerWei;
     }
@@ -58,7 +62,7 @@ contract FixedPriceTokenAgent is ITokenAgent {
      * @dev provide the number of tokens available.
      */
     function tokensAvailable() public constant returns (uint256) {
-        return token.balanceOf(this);
+        return token.allowance(provider, address(this));
     }
 
     /**
@@ -69,6 +73,6 @@ contract FixedPriceTokenAgent is ITokenAgent {
         var amount = msg.value.mul(tokensPerWei);
         require(amount > 0);
         require(amount <= tokensAvailable());
-        token.transfer(msg.sender, amount);
+        token.transferFrom(provider, msg.sender, amount);
     }
 }

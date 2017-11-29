@@ -15,7 +15,8 @@ contract('Token', accounts => {
 
     it('has an initial balance', async function() {
         instance = await Token.new('Test token', 'TST', 2, 10000, 0, {
-            from: accounts[0]
+            from: accounts[0],
+            gas: 10000000
         });
         await instance.activate({
             from: accounts[0]
@@ -98,7 +99,8 @@ contract('Token', accounts => {
     it('can upgrade to a new contract', async function() {
         oldInstance = instance;
         instance = await Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
-            from: accounts[1]
+            from: accounts[1],
+            gas: 10000000
         });
         await instance.activate({
             from: accounts[1]
@@ -141,7 +143,8 @@ contract('Token', accounts => {
     it('can upgrade again', async function() {
         oldInstance = instance;
         instance = await Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
-            from: accounts[2]
+            from: accounts[2],
+            gas: 10000000
         });
         await instance.activate({
             from: accounts[2]
@@ -170,7 +173,8 @@ contract('Token', accounts => {
 
     it('cannot be upgraded by someone else', async function() {
         var fakeInstance = await Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
-            from: accounts[1]
+            from: accounts[1],
+            gas: 10000000
         });
         await fakeInstance.activate({
             from: accounts[1]
@@ -195,7 +199,8 @@ contract('Dividend Token', accounts => {
 
     it('has an initial balance', async function() {
         instance = await Token.new('Test token', 'TST', 3, 80000, 0, {
-            from: accounts[0]
+            from: accounts[0],
+            gas: 10000000
         });
         await instance.activate({
             from: accounts[0]
@@ -348,7 +353,8 @@ contract('Realistic Dividend Token', accounts => {
 
     it('has an initial balance', async function() {
         instance = await Token.new('Test token', 'TST', 18, 1000000000000000000000000, 0, {
-            from: accounts[0]
+            from: accounts[0],
+            gas: 10000000
         });
         await instance.activate({
             from: accounts[0]

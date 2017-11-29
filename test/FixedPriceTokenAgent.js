@@ -12,20 +12,20 @@ contract('FixedPriceTokenAgent', accounts => {
     var faucet;
 
     it('can set up the contracts', async() => {
-        token = await TestToken.new();
+        token = await TestToken.new({gas: 10000000});
         await token.activate();
-        faucet = await FixedPriceTokenAgent.new(token.address, 10, {
+        faucet = await FixedPriceTokenAgent.new(token.address, tokenOwner, 10, {
             from: faucetOwner
         });
     });
 
-    it('can transfer tokens to the faucet agent', async() => {
+    it('can approve token transfers by the faucet agent', async() => {
         var active = await faucet.active();
         assert.equal(active, false);
-        const tx = await token.transfer(faucet.address, 1000, {
+        const tx = await token.approve(faucet.address, 1000, {
             from: tokenOwner
         });
-        const tokens = await token.balanceOf(faucet.address);
+        const tokens = await token.allowance(tokenOwner, faucet.address);
         assert.equal(tokens, 1000);
         active = await faucet.active();
         assert.equal(active, true);
