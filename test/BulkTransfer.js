@@ -26,11 +26,25 @@ contract('BulkTransfer', accounts => {
         assert.equal(await token.balanceOf(accounts[0]), expectedBalance0);
 
         bulkTransfer = await BulkTransfer.new();
+
+        await token.transfer(bulkTransfer.address, 1001001000);
+        assert.equal(await token.balanceOf(bulkTransfer.address), 1001001000);
+    });
+
+    it('cannot be stolen', async function() {
+        var addresses = [];
+        var amounts = [];
+        addresses.push(accounts[1]);
+        amounts.push(1000);
+        try {
+            await bulkTransfer.bulkTransfer(token.address, addresses, amounts, {from: accounts[1]});
+            assert.fail();
+        } catch (error) {
+            assertJump(error);
+        }
     });
 
     it('can bulk transfer', async function() {
-        await token.transfer(bulkTransfer.address, 1001001000);
-        assert.equal(await token.balanceOf(bulkTransfer.address), 1001001000);
         var addresses = [];
         var amounts = [];
         addresses.push(accounts[1]);
