@@ -43,11 +43,15 @@ contract EnsRegistry {
  */
 contract DnsResolver is PublicResolver {
 
+    // SOA records
+    // node => data
+    mapping(bytes32=>bytes) public soaRecords;
+    // All other records
     // node => name => resource => data
     mapping(bytes32=>mapping(bytes32=>mapping(uint16=>bytes))) public records;
 
-    // node => data
-    mapping(bytes32=>bytes) public zones;
+//    // node => data
+//    mapping(bytes32=>bytes) public zones;
 
     // Count of number of entries for a given node
     mapping(bytes32=>uint16) public nodeEntriesCount;
@@ -82,34 +86,51 @@ contract DnsResolver is PublicResolver {
     }
     
     function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes data) {
+        if (resource == 6) {
+            return soaRecords[node];
+        }
         return records[node][name][resource];
     }
 
-    function setDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes data) public onlyNodeOwner(node) {
+    function setDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes data, bytes soaData) public onlyNodeOwner(node) {
         if (records[node][name][resource].length == 0) {
             nodeEntriesCount[node] += 1;
             nameEntriesCount[node][name] += 1;
         }
-        records[node][name][resource] = data;
-    }
-
-    function clearDnsRecord(bytes32 node, bytes32 name, uint16 resource) public onlyNodeOwner(node) {
-        if (records[node][name][resource].length != 0) {
-            nodeEntriesCount[node] -= 1;
-            nameEntriesCount[node][name] -= 1;
-            delete(records[node][name][resource]);
+        if (resource == 6) {
+            soaRecords[node] = data;
+        } else {
+            records[node][name][resource] = data;
+            if (soaData.length > 1) {
+                soaRecords[node] = soaData;
+            }
         }
     }
 
-    function dnsZone(bytes32 node) public view returns (bytes data) {
-        return zones[node];
+    function clearDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes soaData) public onlyNodeOwner(node) {
+        if (records[node][name][resource].length != 0) {
+            nodeEntriesCount[node] -= 1;
+            nameEntriesCount[node][name] -= 1;
+        }
+        if (resource == 6) {
+            delete(soaRecords[node]);
+        } else {
+            delete(records[node][name][resource]);
+            if (soaData.length > 1) {
+                soaRecords[node] = soaData;
+            }
+        }
     }
 
-    function setDnsZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
-        zones[node] = data;
-    }
+//    function dnsZone(bytes32 node) public view returns (bytes data) {
+//        return zones[node];
+//    }
 
-    function clearDnsZone(bytes32 node) public onlyNodeOwner(node) {
-        delete(zones[node]);
-    }
+//    function setDnsZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
+//        zones[node] = data;
+//    }
+
+//    function clearDnsZone(bytes32 node) public onlyNodeOwner(node) {
+//        delete(zones[node]);
+//    }
 }
