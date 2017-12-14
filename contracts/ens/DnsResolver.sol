@@ -32,9 +32,8 @@ contract EnsRegistry {
  *          - resource is the numeric ID of the record from https://en.wikipedia.org/wiki/List_of_DNS_record_types
  *          - data is DNS wire format data for the record
  *
- *        State of this contract: stable; development complete but the code is
- *        unaudited. and may contain bugs and/or security holes. Use at your own
- *        risk.
+ *        State of this contract: under development; ABI not finalised and subject
+ *        to change.  Do not use.
  *
  * @author Jim McDonald
  * @notice If you use this contract please consider donating some Ether or
@@ -50,26 +49,11 @@ contract DnsResolver is PublicResolver {
     // node => name => resource => data
     mapping(bytes32=>mapping(bytes32=>mapping(uint16=>bytes))) public records;
 
-//    // node => data
-//    mapping(bytes32=>bytes) public zones;
-
-    // Count of number of entries for a given node
-    mapping(bytes32=>uint16) public nodeEntriesCount;
-
     // Count of number of entries for a given name
     mapping(bytes32=>mapping(bytes32=>uint16)) public nameEntriesCount;
 
     // The ENS registry
     AbstractENS registry;
-
-    // Getters
-    function nodeEntries(bytes32 node) public view returns (uint16 entries) {
-        return nodeEntriesCount[node];
-    }
-
-    function nameEntries(bytes32 node, bytes32 name) public view returns (uint16 entries) {
-        return nameEntriesCount[node][name];
-    }
 
     // Restrict operations to the owner of the relevant ENS node
     modifier onlyNodeOwner(bytes32 node) {
@@ -82,9 +66,13 @@ contract DnsResolver is PublicResolver {
     }
 
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return interfaceId == 0xd7c2836a || interfaceId == 0x7ce1c1bd || super.supportsInterface(interfaceId);
+        return interfaceId == 0xd7c2836a || super.supportsInterface(interfaceId);
     }
     
+    function hasDnsZone(bytes32 node) public view returns (bool hasRecords) {
+        return soaRecords[node].length != 0;
+    }
+
     function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes data) {
         if (resource == 6) {
             return soaRecords[node];
@@ -92,9 +80,12 @@ contract DnsResolver is PublicResolver {
         return records[node][name][resource];
     }
 
+    function hasDnsRecords(bytes32 node, bytes32 name) public view returns (bool hasRecords) {
+        return nameEntriesCount[node][name] != 0;
+    }
+
     function setDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes data, bytes soaData) public onlyNodeOwner(node) {
         if (records[node][name][resource].length == 0) {
-            nodeEntriesCount[node] += 1;
             nameEntriesCount[node][name] += 1;
         }
         if (resource == 6) {
@@ -109,7 +100,6 @@ contract DnsResolver is PublicResolver {
 
     function clearDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes soaData) public onlyNodeOwner(node) {
         if (records[node][name][resource].length != 0) {
-            nodeEntriesCount[node] -= 1;
             nameEntriesCount[node][name] -= 1;
         }
         if (resource == 6) {
@@ -121,16 +111,4 @@ contract DnsResolver is PublicResolver {
             }
         }
     }
-
-//    function dnsZone(bytes32 node) public view returns (bytes data) {
-//        return zones[node];
-//    }
-
-//    function setDnsZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
-//        zones[node] = data;
-//    }
-
-//    function clearDnsZone(bytes32 node) public onlyNodeOwner(node) {
-//        delete(zones[node]);
-//    }
 }

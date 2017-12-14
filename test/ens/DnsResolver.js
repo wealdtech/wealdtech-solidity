@@ -39,24 +39,19 @@ contract('DnsResolver', (accounts) => {
 
         await registrar.register(testDomainLabelHash, { from: testDomainOwner });
 
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 0);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 0);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
 
         await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 1);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 1);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.setDnsRecord(testDomainNameHash, testNameHash, 2, '0x012345', '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 2);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 2);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 2, '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 1);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 1);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 1, '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 0);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 0);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
     });
 
     it('should not double-count node entries', async() => {
@@ -68,20 +63,16 @@ contract('DnsResolver', (accounts) => {
 
         await registrar.register(testDomainLabelHash, { from: testDomainOwner });
 
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 0);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 0);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
 
         await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 1);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 1);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x543210', '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 1);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 1);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 1, '', { from: testDomainOwner });
-        assert.equal(await resolver.nodeEntries(testDomainNameHash), 0);
-        assert.equal(await resolver.nameEntries(testDomainNameHash, testNameHash), 0);
+        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
     });
 
     it('should update SOA correctly', async() => {
