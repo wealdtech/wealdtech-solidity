@@ -3,7 +3,6 @@ const MockEnsRegistrar = artifacts.require("./contracts/MockEnsRegistrar.sol");
 const DnsResolver = artifacts.require("./contracts/ens/DnsResolver.sol");
 
 const sha3 = require('solidity-sha3').default;
-const assertJump = require('../helpers/assertJump');
 
 const increaseTime = addSeconds => web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_increaseTime", params: [addSeconds], id: 0 })
 const mine = () => web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_mine", params: [], id: 0 })

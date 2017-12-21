@@ -1,6 +1,6 @@
 'use strict';
 
-const assertJump = require('./helpers/assertJump');
+const assertRevert = require('./helpers/assertRevert');
 const PermissionedStorage = artifacts.require('./PermissionedStorage.sol');
 
 const sha3 = require('solidity-sha3').default;
@@ -101,7 +101,7 @@ contract('Permissioned Storage', accounts => {
       await instance.setBoolean(key, true, { from: accounts[1] });
       assert.fail();
     } catch (error) {
-      assertJump(error);
+      assertRevert(error);
     }
   });
 });
