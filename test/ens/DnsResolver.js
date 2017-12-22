@@ -1,6 +1,7 @@
 const ENS = artifacts.require("./ENS.sol");
 const MockEnsRegistrar = artifacts.require("./contracts/MockEnsRegistrar.sol");
 const DnsResolver = artifacts.require("./contracts/ens/DnsResolver.sol");
+const assertRevert = require('../helpers/assertRevert');
 
 const sha3 = require('solidity-sha3').default;
 
@@ -40,10 +41,10 @@ contract('DnsResolver', (accounts) => {
 
         assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', { from: testDomainOwner });
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', '', '', { from: testDomainOwner });
         assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 2, '0x012345', '', { from: testDomainOwner });
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 2, '0x012345', '', '', '', { from: testDomainOwner });
         assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 2, '', { from: testDomainOwner });
@@ -64,10 +65,10 @@ contract('DnsResolver', (accounts) => {
 
         assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', { from: testDomainOwner });
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', '', '', { from: testDomainOwner });
         assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x543210', '', { from: testDomainOwner });
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x543210', '', '', '', { from: testDomainOwner });
         assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
 
         await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 1, '', { from: testDomainOwner });
@@ -83,21 +84,58 @@ contract('DnsResolver', (accounts) => {
 
         await registrar.register(testDomainLabelHash, { from: testDomainOwner });
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x111111', '0xffffff', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1), '0x111111');
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xffffff');
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x111111', '', '0xffffff', '', { from: testDomainOwner });
+        res = await resolver.dnsRecord(testDomainNameHash, testNameHash, 1);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x222222', '', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1), '0x222222');
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xffffff');
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1)).to.eql(['0x111111', '0x']);
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6)).to.eql(['0xffffff', '0x']);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x222222', '0xeeeeee', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1), '0x222222');
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xeeeeee');
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x222222', '', '', '', { from: testDomainOwner });
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1)).to.eql(['0x222222', '0x']);
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6)).to.eql(['0xffffff', '0x']);
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 6, '0xdddddd', '0xcccccc', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xdddddd');
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x222222', '', '0xeeeeee', '', { from: testDomainOwner });
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1)).to.eql(['0x222222', '0x']);
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6)).to.eql(['0xeeeeee', '0x']);
 
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 6, '0xdddddd', '', '0xcccccc', '', { from: testDomainOwner });
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6)).to.eql(['0xdddddd', '0x']);
     });
 
+    it('should set and fetch RRSIG correctly', async() => {
+        const testDomain = 'test4';
+        const testDomainLabelHash = sha3(testDomain);
+        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
+        const testName = 'test4.eth.';
+        const testNameHash = sha3(testName);
+
+        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
+
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x111111', '0x012345', '0xffffff', '0x123456', { from: testDomainOwner });
+        res = await resolver.dnsRecord(testDomainNameHash, testNameHash, 1);
+
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1)).to.eql(['0x111111', '0x012345']);
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6)).to.eql(['0xffffff', '0x123456']);
+
+        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x222222', '', '0xeeeeee', '0x234567', { from: testDomainOwner });
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1)).to.eql(['0x222222', '0x']);
+        expect(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6)).to.eql(['0xeeeeee', '0x234567']);
+    });
+
+    it('cannot set RRSIG directly', async() => {
+        const testDomain = 'test5';
+        const testDomainLabelHash = sha3(testDomain);
+        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
+        const testName = 'test5.eth.';
+        const testNameHash = sha3(testName);
+
+        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
+
+        try {
+            await resolver.setDnsRecord(testDomainNameHash, testNameHash, 46, '0x111111', '0x012345', '0xffffff', '0x123456', { from: testDomainOwner });
+            assert.fail();
+        } catch (error) {
+            assertRevert(error);
+        }
+    });
 });

@@ -44,7 +44,12 @@ contract DnsResolver is PublicResolver {
 
     // SOA records
     // node => data
+    uint16 constant SOA_RR = 6;
     mapping(bytes32=>bytes) public soaRecords;
+    // RRSIG records
+    // node => name => RRSIG resource => data
+    uint16 constant RRSIG_RR = 46;
+    mapping(bytes32=>mapping(bytes32=>mapping(uint16=>bytes))) public rrsigRecords;
     // All other records
     // node => name => resource => data
     mapping(bytes32=>mapping(bytes32=>mapping(uint16=>bytes))) public records;
@@ -73,27 +78,43 @@ contract DnsResolver is PublicResolver {
         return soaRecords[node].length != 0;
     }
 
-    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes data) {
-        if (resource == 6) {
-            return soaRecords[node];
+    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes data, bytes sigData) {
+        if (resource == SOA_RR) {
+            return (soaRecords[node], rrsigRecords[node][name][resource]);
         }
-        return records[node][name][resource];
+        return (records[node][name][resource], rrsigRecords[node][name][resource]);
     }
 
     function hasDnsRecords(bytes32 node, bytes32 name) public view returns (bool hasRecords) {
         return nameEntriesCount[node][name] != 0;
     }
 
-    function setDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes data, bytes soaData) public onlyNodeOwner(node) {
+    /**
+     * setDnsRecord sets the values for a DNS record
+     * @param node the namehash of the node for which to store the record
+     * @param name the name of the label for which to store the record
+     * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
+     * @param data the DNS record in wire format
+     * @param sigData the signature of the DNS record (can be empty for unsigned records)
+     * @param soaData the DNS SOA record in wire format (can be empty if not updating the SOA)
+     * @param sigData the signature of the SOA DNS record (can be empty for unsigned records)
+     */
+    function setDnsRecord(bytes32 node, bytes32 name, uint16 resource, bytes data, bytes sigData, bytes soaData, bytes soaSigData) public onlyNodeOwner(node) {
+        // Cannot set RRSIGs directly
+        require(resource != RRSIG_RR);
+
         if (records[node][name][resource].length == 0) {
             nameEntriesCount[node][name] += 1;
         }
-        if (resource == 6) {
+        if (resource == SOA_RR) {
             soaRecords[node] = data;
+            rrsigRecords[node][name][SOA_RR] = sigData;
         } else {
             records[node][name][resource] = data;
-            if (soaData.length > 1) {
+            rrsigRecords[node][name][resource] = sigData;
+            if (soaData.length > 0) {
                 soaRecords[node] = soaData;
+                rrsigRecords[node][name][SOA_RR] = soaSigData;
             }
         }
     }
@@ -102,11 +123,12 @@ contract DnsResolver is PublicResolver {
         if (records[node][name][resource].length != 0) {
             nameEntriesCount[node][name] -= 1;
         }
-        if (resource == 6) {
+        if (resource == SOA_RR) {
             delete(soaRecords[node]);
         } else {
             delete(records[node][name][resource]);
-            if (soaData.length > 1) {
+            delete(rrsigRecords[node][name][resource]);
+            if (soaData.length > 0) {
                 soaRecords[node] = soaData;
             }
         }
