@@ -41,6 +41,8 @@ contract EnsRegistry {
  *         development of these and future contracts
  */
 contract DnsResolver is PublicResolver {
+    // Complete zones
+    mapping(bytes32=>bytes) public zones;
 
     // SOA records
     // node => data
@@ -69,8 +71,9 @@ contract DnsResolver is PublicResolver {
     }
 
     // 0xa8fa5682 == bytes4(keccak256("dnsRecord(bytes32,bytes32,uint16)"))
+    // 0x233a359c == bytes4(keccak256("setDnsZone(bytes32,bytes)"))
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return interfaceId == 0xa8fa5682 || super.supportsInterface(interfaceId);
+        return interfaceId == 0xa8fa5682 || interfaceId == 0x233a359c || super.supportsInterface(interfaceId);
     }
     
     /**
@@ -132,6 +135,32 @@ contract DnsResolver is PublicResolver {
                 soaRecords[node] = soaData;
             }
         }
+    }
+
+    /**
+     * Set the values for a DNS zone.
+     * @param node the namehash of the node for which to store the zone
+     * @param data the DNS zone in wire format
+     */
+    function setDnsZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
+        zones[node] = data;
+    }
+
+    /**
+     * Obtain a DNS zone.
+     * @param node the namehash of the node for which to fetch the zone
+     * @return the DNS zone in wire format if present, otherwise empty
+     */
+    function dnsZone(bytes32 node) public view returns (bytes data) {
+        return zones[node];
+    }
+
+    /**
+     * Clear the values for a DNS zone.
+     * @param node the namehash of the node for which to clear the zone
+     */
+    function clearDnsZone(bytes32 node) public onlyNodeOwner(node) {
+        delete(zones[node]);
     }
 
     //
