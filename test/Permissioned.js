@@ -1,6 +1,6 @@
 'use strict';
 
-const assertJump = require('./helpers/assertJump');
+const assertRevert = require('./helpers/assertRevert');
 const PermissionedTest1 = artifacts.require('samplecontracts/PermissionedTest1.sol');
 
 const sha3 = require('solidity-sha3').default;
@@ -15,7 +15,7 @@ contract('Permissioned', accounts => {
         await instance.setBool(true, {from: accounts[1]});
         assert.fail();
     } catch(error) {
-        assertJump(error);
+        assertRevert(error);
     }
   });
 
@@ -31,7 +31,7 @@ contract('Permissioned', accounts => {
         await instance.setBool(true, {from: accounts[2]});
         assert.fail();
     } catch(error) {
-        assertJump(error);
+        assertRevert(error);
     }
   });
 
@@ -41,7 +41,7 @@ contract('Permissioned', accounts => {
         await instance.setInt(1, {from: accounts[1]});
         assert.fail();
     } catch(error) {
-        assertJump(error);
+        assertRevert(error);
     }
   });
 
@@ -52,7 +52,7 @@ contract('Permissioned', accounts => {
         await instance.setBool(true, {from: accounts[1]});
         assert.fail();
     } catch(error) {
-        assertJump(error);
+        assertRevert(error);
     }
   });
 
@@ -62,7 +62,7 @@ contract('Permissioned', accounts => {
         await instance.setPermission(accounts[0], PERMS_SET_BOOL, true, {from: accounts[1]});
         assert.fail();
     } catch(error) {
-        assertJump(error);
+        assertRevert(error);
     }
   });
 });

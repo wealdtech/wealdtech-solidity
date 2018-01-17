@@ -1,6 +1,6 @@
 'use strict';
 
-const assertJump = require('./helpers/assertJump');
+const assertRevert = require('./helpers/assertRevert');
 const FixedPriceTokenAgent = artifacts.require('./token/FixedPriceTokenAgent.sol');
 const TestToken = artifacts.require('./samplecontracts/TestToken.sol');
 
@@ -39,7 +39,7 @@ contract('FixedPriceTokenAgent', accounts => {
             });
             assert.fail();
         } catch (error) {
-            assertJump(error);
+            assertRevert(error);
         }
     });
 

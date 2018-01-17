@@ -1,6 +1,6 @@
 'use strict';
 
-const assertJump = require('./helpers/assertJump');
+const assertRevert = require('./helpers/assertRevert');
 const Token = artifacts.require('./Token.sol');
 
 function pack(addr, value) {
@@ -136,7 +136,7 @@ contract('Token', accounts => {
             });
             assert.fail();
         } catch (error) {
-            assertJump(error);
+            assertRevert(error);
         }
     });
 
@@ -185,7 +185,7 @@ contract('Token', accounts => {
             });
             assert.fail();
         } catch (error) {
-            assertJump(error);
+            assertRevert(error);
         }
     });
 });
