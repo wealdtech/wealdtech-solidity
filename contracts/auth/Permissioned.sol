@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.21;
 
 
 // Copyright © 2017 Weald Technology Trading Limited
@@ -56,9 +56,9 @@ contract Permissioned {
      * @dev The Permissioned constructor gives the contract creator the
      * superuser permission with the ability to change permissions.
      */
-    function Permissioned() public {
+    constructor() public {
         permissions[msg.sender][PERM_SUPERUSER] = true;
-        PermissionChanged(msg.sender, PERM_SUPERUSER, true);
+        emit PermissionChanged(msg.sender, PERM_SUPERUSER, true);
     }
 
     /**
@@ -81,6 +81,6 @@ contract Permissioned {
      */
     function setPermission(address addr, bytes32 permission, bool allowed) public ifPermitted(msg.sender, PERM_SUPERUSER) {
         permissions[addr][permission] = allowed;
-        PermissionChanged(addr, permission, allowed);
+        emit PermissionChanged(addr, permission, allowed);
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.21;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,6 +50,6 @@ contract Redirectable is Permissioned {
      */
     function setRedirect(address _redirect) public ifPermitted(msg.sender, PERM_REDIRECT) {
         redirect = _redirect;
-        Redirect(redirect);
+        emit Redirect(redirect);
     }
 }

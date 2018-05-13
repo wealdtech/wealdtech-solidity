@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.21;
 
 import './IERC20.sol';
 import '../lifecycle/Managed.sol';
@@ -7,10 +7,10 @@ import './DividendTokenStore.sol';
 
 
 /**
- * @title Token
- *        Token is an ERC-20 compliant token implementation with significantly
- *        upgraded functionality including a separate token store, cheap bulk
- *        transfers, efficient dividends, and easy upgrading.
+ * @title ERC20Token
+ *        ERC20Token is an ERC-20 compliant token implementation with
+ *        significantly upgraded functionality including a separate token store,
+ *        cheap bulk transfers, efficient dividends, and easy upgrading.
  *
  *        The token is fully permissioned.  Permissions to carry out operations
  *        can be given to one or more addresses.  This increases the power of
@@ -43,7 +43,7 @@ import './DividendTokenStore.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract Token is IERC20, Managed {
+contract ERC20Token is IERC20, Managed {
     using SafeMath for uint256;
 
     // Definition for the token
@@ -84,7 +84,7 @@ contract Token is IERC20, Managed {
      *        you want 100 tokens with 3 decimal places you would create 100000 tokens (100 * 10^3)
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
-    function Token(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) public {
+    constructor(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) public {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
@@ -92,7 +92,7 @@ contract Token is IERC20, Managed {
             store = new DividendTokenStore();
             if (_totalSupply > 0) {
                 store.mint(msg.sender, _totalSupply);
-                Transfer(0, msg.sender, store.totalSupply());
+                emit Transfer(0, msg.sender, store.totalSupply());
             }
         } else {
             store = DividendTokenStore(_store);
@@ -210,8 +210,8 @@ contract Token is IERC20, Managed {
      */
     function mint(uint256 _amount) public sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
         store.mint(msg.sender, _amount);
-        Transfer(0, msg.sender, _amount);
-        Mint(msg.sender, _amount);
+        emit Transfer(0, msg.sender, _amount);
+        emit Mint(msg.sender, _amount);
     }
 
     /**
@@ -220,8 +220,8 @@ contract Token is IERC20, Managed {
      */
     function burn(uint256 _amount) public sync(msg.sender) ifInState(State.Active) {
         store.burn(msg.sender, _amount);
-        Transfer(msg.sender, 0, _amount);
-        Burn(msg.sender, _amount);
+        emit Transfer(msg.sender, 0, _amount);
+        emit Burn(msg.sender, _amount);
     }
 
     /**
@@ -242,7 +242,7 @@ contract Token is IERC20, Managed {
     function transfer(address _recipient, uint256 _value) public sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
         require(_recipient != address(this));
         store.transfer(msg.sender, _recipient, _value);
-        Transfer(msg.sender, _recipient, _value);
+        emit Transfer(msg.sender, _recipient, _value);
         return true;
     }
 
@@ -256,14 +256,14 @@ contract Token is IERC20, Managed {
 
     function transferFrom(address _owner, address _recipient, uint256 _value) public sync(msg.sender) sync(_owner) sync(_recipient) ifInState(State.Active) returns (bool) {
         store.useAllowance(_owner, msg.sender, _recipient, _value);
-        Transfer(_owner, _recipient, _value);
+        emit Transfer(_owner, _recipient, _value);
         return true;
     }
 
     function approve(address _recipient, uint256 _value) public sync(msg.sender) sync(_recipient) ifInState(State.Active) returns (bool) {
         require(_recipient != address(this));
         store.setAllowance(msg.sender, _recipient, _value);
-        Approval(msg.sender, _recipient, _value);
+        emit Approval(msg.sender, _recipient, _value);
         return true;
     }
 }

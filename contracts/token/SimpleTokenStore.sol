@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.21;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,8 +59,12 @@ contract SimpleTokenStore is ITokenStore {
     mapping(address=>uint256) internal balances;
     mapping(address=>mapping(address=>uint256)) internal allowances;
 
+    // Flag to enable/disable minting
+    bool public mintingAllowed;
+
     // Permissions for each operation
     bytes32 internal constant PERM_MINT = keccak256("token storage: mint");
+    bytes32 internal constant PERM_DISBALE_MINTING = keccak256("token storage: disable minting");
     bytes32 internal constant PERM_TRANSFER = keccak256("token storage: transfer");
     bytes32 internal constant PERM_SET_ALLOWANCE = keccak256("token storage: set allowance");
     bytes32 internal constant PERM_USE_ALLOWANCE = keccak256("token storage: use allowance");
@@ -70,10 +74,11 @@ contract SimpleTokenStore is ITokenStore {
      *      This is usually called by a token contract.
      */
     function SimpleTokenStore() public {
+        mintingAllowed = true;
     }
 
     /**
-     * @dev Fallback
+     * @dev Fallback.
      *      This contract does not accept funds, so revert
      */
     function () public payable {
@@ -81,9 +86,17 @@ contract SimpleTokenStore is ITokenStore {
     }
 
     /**
+     * @dev Permanently disable minting of tokens.
+     */
+    function disableMinting() public ifPermitted(msg.sender, PERM_DISBALE_MINTING) {
+        mintingAllowed = false;
+    }
+
+    /**
      * @dev Mint tokens and allocate them to a recipient.
      */
     function mint(address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_MINT) {
+        require(mintingAllowed);
         balances[_recipient] = balances[_recipient].add(_amount);
         totalSupply = totalSupply.add(_amount);
     }
@@ -137,7 +150,7 @@ contract SimpleTokenStore is ITokenStore {
      *      transfer those 10 tokens directly from A to C.
      */
     function useAllowance(address _owner, address _allowanceHolder, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_USE_ALLOWANCE) {
-        var allowance = allowances[_owner][_allowanceHolder];
+        uint256 allowance = allowances[_owner][_allowanceHolder];
         balances[_owner] = balances[_owner].sub(_amount);
         balances[_recipient] = balances[_recipient].add(_amount);
         allowances[_owner][_allowanceHolder] = allowance.sub(_amount);

@@ -1,8 +1,8 @@
 'use strict';
 
-const assertRevert = require('./helpers/assertRevert');
+const assertRevert = require('../helpers/assertRevert');
 const FixedPriceTokenAgent = artifacts.require('./token/FixedPriceTokenAgent.sol');
-const TestToken = artifacts.require('./samplecontracts/TestToken.sol');
+const TestERC20Token = artifacts.require('./samplecontracts/TestERC20Token.sol');
 
 contract('FixedPriceTokenAgent', accounts => {
     const tokenOwner = accounts[0];
@@ -12,7 +12,7 @@ contract('FixedPriceTokenAgent', accounts => {
     var faucet;
 
     it('can set up the contracts', async() => {
-        token = await TestToken.new({gas: 10000000});
+        token = await TestERC20Token.new({gas: 10000000});
         await token.activate();
         faucet = await FixedPriceTokenAgent.new(token.address, tokenOwner, 10, {
             from: faucetOwner
