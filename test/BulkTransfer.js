@@ -1,6 +1,6 @@
 'use strict';
 
-const assertJump = require('./helpers/assertJump');
+const assertRevert = require('./helpers/assertRevert');
 const Token = artifacts.require('./Token.sol');
 const BulkTransfer = artifacts.require('./BulkTransfer.sol');
 
@@ -40,7 +40,7 @@ contract('BulkTransfer', accounts => {
             await bulkTransfer.bulkTransfer(token.address, addresses, amounts, {from: accounts[1]});
             assert.fail();
         } catch (error) {
-            assertJump(error);
+            assertRevert(error);
         }
     });
 
