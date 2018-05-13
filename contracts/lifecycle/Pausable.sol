@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.21;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -68,7 +68,7 @@ contract Pausable is Permissioned {
      */
     function pause() public ifPermitted(msg.sender, PERM_PAUSE) ifNotPaused returns (bool) {
         paused = true;
-        Pause();
+        emit Pause();
         return true;
     }
 
@@ -77,7 +77,7 @@ contract Pausable is Permissioned {
      */
     function unpause() public ifPermitted(msg.sender, PERM_PAUSE) ifPaused returns (bool) {
         paused = false;
-        Unpause();
+        emit Unpause();
         return true;
     }
 }

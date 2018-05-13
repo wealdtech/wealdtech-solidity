@@ -8,4 +8,4 @@ build
 node_modules
 
 # Deployment
-deploy.sh
+deploy*.sh

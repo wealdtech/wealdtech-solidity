@@ -1,6 +1,6 @@
 'use strict';
 
-const assertRevert = require('./helpers/assertRevert');
+const assertRevert = require('../helpers/assertRevert');
 const PermissionedTest1 = artifacts.require('samplecontracts/PermissionedTest1.sol');
 
 const sha3 = require('solidity-sha3').default;

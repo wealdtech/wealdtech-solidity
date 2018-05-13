@@ -1,7 +1,7 @@
 'use strict';
 
-const assertRevert = require('./helpers/assertRevert');
-const Token = artifacts.require('./Token.sol');
+const assertRevert = require('../helpers/assertRevert');
+const ERC20Token = artifacts.require('./ERC20Token.sol');
 const BulkTransfer = artifacts.require('./BulkTransfer.sol');
 
 function pack(addr, value) {
@@ -15,7 +15,7 @@ contract('BulkTransfer', accounts => {
     let expectedBalance0 = 100000000000000000000000000;
 
     it('has an initial balance', async function() {
-        token = await Token.new('Test token', 'TST', 18, 100000000000000000000000000, 0, {
+        token = await ERC20Token.new('Test token', 'TST', 18, 100000000000000000000000000, 0, {
             from: accounts[0],
             gas: 10000000
         });

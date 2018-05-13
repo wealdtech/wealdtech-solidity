@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.21;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -161,7 +161,7 @@ contract Managed is Permissioned {
     /**
      * @dev Managed constructor.  Set the state to deployed.
      */
-    function Managed() public {
+    constructor() public {
         currentState = State.Deployed;
     }
 
@@ -170,7 +170,7 @@ contract Managed is Permissioned {
      */
     function activate() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Deployed) {
         currentState = State.Active;
-        StateChange(State.Active);
+        emit StateChange(State.Active);
     }
 
     /**
@@ -181,8 +181,8 @@ contract Managed is Permissioned {
     function pause(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
         currentState = State.Paused;
         pausedUntil = _pausedUntil;
-        StateChange(State.Paused);
-        PausedUntil(pausedUntil);
+        emit StateChange(State.Paused);
+        emit PausedUntil(pausedUntil);
     }
 
     /**
@@ -193,7 +193,7 @@ contract Managed is Permissioned {
     function setPausedUntil(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
         require(_pausedUntil > block.timestamp);
         pausedUntil = _pausedUntil;
-        PausedUntil(pausedUntil);
+        emit PausedUntil(pausedUntil);
     }
 
     /**
@@ -202,7 +202,7 @@ contract Managed is Permissioned {
     function unpause() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
         currentState = State.Active;
         pausedUntil = 0;
-        StateChange(State.Active);
+        emit StateChange(State.Active);
     }
 
     /**
@@ -210,7 +210,7 @@ contract Managed is Permissioned {
      */
     function retire() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
         currentState = State.Retired;
-        StateChange(State.Retired);
+        emit StateChange(State.Retired);
     }
 
     /**
@@ -232,8 +232,8 @@ contract Managed is Permissioned {
         require(supercededBy != 0);
         // Mark this contract as upgraded
         currentState = State.Upgraded;
-        StateChange(State.Upgraded);
-        SupercededBy(supercededBy);
+        emit StateChange(State.Upgraded);
+        emit SupercededBy(supercededBy);
     }
 
     /**
@@ -243,7 +243,7 @@ contract Managed is Permissioned {
     function commitUpgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Upgraded) {
         // Mark this contract as retired
         currentState = State.Retired;
-        StateChange(State.Retired);
+        emit StateChange(State.Retired);
     }
 
     /**
@@ -253,6 +253,6 @@ contract Managed is Permissioned {
     function revertUpgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Upgraded) {
         currentState = State.Active;
         supercededBy = 0;
-        StateChange(State.Active);
+        emit StateChange(State.Active);
     }
 }

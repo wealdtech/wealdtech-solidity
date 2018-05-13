@@ -59,16 +59,11 @@ contract DividendTokenStore is SimpleTokenStore {
         uint256 supply;
     }
     Dividend[] private dividends;
+    // The address holding dividends that have yet to be paid out
     address private DIVIDEND_ADDRESS = 0x01;
 
     // Permissions for each operation
     bytes32 internal constant PERM_ISSUE_DIVIDEND = keccak256("token storage: issue dividend");
-
-    /**
-     * @dev Constructor
-     *      This is usually called by a token contract.
-     */
-    function DividendTokenStore() public SimpleTokenStore() { }
 
     /**
      * @dev obtain the dividend(s) owing to a given account.
@@ -77,7 +72,7 @@ contract DividendTokenStore is SimpleTokenStore {
         uint256 initialBalance = balances[_account];
         uint256 balance = initialBalance;
         // Iterate over all outstanding dividends
-        var nextDividend = nextDividends[_account];
+        uint256 nextDividend = nextDividends[_account];
         for (uint256 currentDividend = nextDividend; currentDividend < dividends.length; currentDividend++) {
             balance = balance.add(balance.mul(dividends[currentDividend].amount).div(dividends[currentDividend].supply));
         }
@@ -93,7 +88,7 @@ contract DividendTokenStore is SimpleTokenStore {
      * @param _account The account to synchronise
      */
     function sync(address _account) public {
-        var accountDividend = dividendsOwing(_account);
+        uint256 accountDividend = dividendsOwing(_account);
         if (accountDividend > 0) {
             transfer(DIVIDEND_ADDRESS, _account, accountDividend);
             nextDividends[_account] = dividends.length;

@@ -1,20 +1,20 @@
 'use strict';
 
-const assertRevert = require('./helpers/assertRevert');
-const Token = artifacts.require('./Token.sol');
+const assertRevert = require('../helpers/assertRevert');
+const ERC20Token = artifacts.require('./ERC20Token.sol');
 
 function pack(addr, value) {
     return '0x' + ('000000000000000000000000' + value.toString(16)).slice(-24) + addr.slice(2);
 }
 
-contract('Token', accounts => {
+contract('ERC20Token', accounts => {
     var instance;
     var oldInstance;
 
     let expectedBalance0 = 10000;
 
     it('has an initial balance', async function() {
-        instance = await Token.new('Test token', 'TST', 2, 10000, 0, {
+        instance = await ERC20Token.new('Test token', 'TST', 2, 10000, 0, {
             from: accounts[0],
             gas: 10000000
         });
@@ -98,7 +98,7 @@ contract('Token', accounts => {
 
     it('can upgrade to a new contract', async function() {
         oldInstance = instance;
-        instance = await Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        instance = await ERC20Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
@@ -142,7 +142,7 @@ contract('Token', accounts => {
 
     it('can upgrade again', async function() {
         oldInstance = instance;
-        instance = await Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        instance = await ERC20Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
             from: accounts[2],
             gas: 10000000
         });
@@ -172,7 +172,7 @@ contract('Token', accounts => {
     });
 
     it('cannot be upgraded by someone else', async function() {
-        var fakeInstance = await Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        var fakeInstance = await ERC20Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
@@ -198,7 +198,7 @@ contract('Dividend Token', accounts => {
     let expectedBalances = [60000, 10000, 10000];
 
     it('has an initial balance', async function() {
-        instance = await Token.new('Test token', 'TST', 3, 80000, 0, {
+        instance = await ERC20Token.new('Test token', 'TST', 3, 80000, 0, {
             from: accounts[0],
             gas: 10000000
         });
@@ -352,7 +352,7 @@ contract('Realistic Dividend Token', accounts => {
     let expectedBalances = [web3.toWei('996000', 'ether'), web3.toWei('2000', 'ether'), web3.toWei('2000', 'ether')]
 
     it('has an initial balance', async function() {
-        instance = await Token.new('Test token', 'TST', 18, 1000000000000000000000000, 0, {
+        instance = await ERC20Token.new('Test token', 'TST', 18, 1000000000000000000000000, 0, {
             from: accounts[0],
             gas: 10000000
         });
