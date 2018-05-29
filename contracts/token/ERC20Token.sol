@@ -77,6 +77,7 @@ contract ERC20Token is IERC20, Managed {
      * @dev Token creates the token with the required parameters.  If
      *      _tokenstore is supplied then the existing store is used, otherwise a
      *      new store is created with the other supplied parameters.
+     * @param _version the version of the contract
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _decimals the number of decimal places of the common unit (commonly 18)
@@ -84,7 +85,10 @@ contract ERC20Token is IERC20, Managed {
      *        you want 100 tokens with 3 decimal places you would create 100000 tokens (100 * 10^3)
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
-    constructor(string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store) public {
+    constructor(uint256 _version, string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store)
+      Managed(_version)
+      public
+    {
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
@@ -158,6 +162,7 @@ contract ERC20Token is IERC20, Managed {
      *      This should give the new contract access to the token store.
      */
     function preUpgrade(address _supercededBy) public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
+        require(Managed(_supercededBy).version() > version);
         // Add the new contract to the list of superusers of the token store
         store.setPermission(_supercededBy, PERM_SUPERUSER, true);
         super.preUpgrade(_supercededBy);

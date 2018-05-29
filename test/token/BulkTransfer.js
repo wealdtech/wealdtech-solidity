@@ -15,7 +15,7 @@ contract('BulkTransfer', accounts => {
     let expectedBalance0 = 100000000000000000000000000;
 
     it('has an initial balance', async function() {
-        token = await ERC20Token.new('Test token', 'TST', 18, 100000000000000000000000000, 0, {
+        token = await ERC20Token.new(1, 'Test token', 'TST', 18, 100000000000000000000000000, 0, {
             from: accounts[0],
             gas: 10000000
         });

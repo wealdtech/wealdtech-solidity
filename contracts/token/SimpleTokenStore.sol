@@ -73,7 +73,7 @@ contract SimpleTokenStore is ITokenStore {
      * @dev Constructor
      *      This is usually called by a token contract.
      */
-    function SimpleTokenStore() public {
+    constructor() public {
         mintingAllowed = true;
     }
 
