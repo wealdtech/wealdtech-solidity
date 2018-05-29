@@ -14,7 +14,7 @@ contract('ERC20Token', accounts => {
     let expectedBalance0 = 10000;
 
     it('has an initial balance', async function() {
-        instance = await ERC20Token.new('Test token', 'TST', 2, 10000, 0, {
+        instance = await ERC20Token.new(1, 'Test token', 'TST', 2, 10000, 0, {
             from: accounts[0],
             gas: 10000000
         });
@@ -98,7 +98,7 @@ contract('ERC20Token', accounts => {
 
     it('can upgrade to a new contract', async function() {
         oldInstance = instance;
-        instance = await ERC20Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        instance = await ERC20Token.new(2, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
@@ -142,7 +142,7 @@ contract('ERC20Token', accounts => {
 
     it('can upgrade again', async function() {
         oldInstance = instance;
-        instance = await ERC20Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        instance = await ERC20Token.new(3, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
             from: accounts[2],
             gas: 10000000
         });
@@ -172,7 +172,7 @@ contract('ERC20Token', accounts => {
     });
 
     it('cannot be upgraded by someone else', async function() {
-        var fakeInstance = await ERC20Token.new('Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        var fakeInstance = await ERC20Token.new(4, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
@@ -182,6 +182,24 @@ contract('ERC20Token', accounts => {
         try {
             await instance.preUpgrade(fakeInstance.address, {
                 from: accounts[3]
+            });
+            assert.fail();
+        } catch (error) {
+            assertRevert(error);
+        }
+    });
+
+    it('cannot be sidegraded', async function() {
+        var sideInstance = await ERC20Token.new(3, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
+            from: accounts[2],
+            gas: 10000000
+        });
+        await sideInstance.activate({
+            from: accounts[2]
+        });
+        try {
+            await instance.preUpgrade(sideInstance.address, {
+                from: accounts[2]
             });
             assert.fail();
         } catch (error) {
@@ -198,7 +216,7 @@ contract('Dividend Token', accounts => {
     let expectedBalances = [60000, 10000, 10000];
 
     it('has an initial balance', async function() {
-        instance = await ERC20Token.new('Test token', 'TST', 3, 80000, 0, {
+        instance = await ERC20Token.new(1, 'Test token', 'TST', 3, 80000, 0, {
             from: accounts[0],
             gas: 10000000
         });
@@ -352,7 +370,7 @@ contract('Realistic Dividend Token', accounts => {
     let expectedBalances = [web3.toWei('996000', 'ether'), web3.toWei('2000', 'ether'), web3.toWei('2000', 'ether')]
 
     it('has an initial balance', async function() {
-        instance = await ERC20Token.new('Test token', 'TST', 18, 1000000000000000000000000, 0, {
+        instance = await ERC20Token.new(1, 'Test token', 'TST', 18, 1000000000000000000000000, 0, {
             from: accounts[0],
             gas: 10000000
         });

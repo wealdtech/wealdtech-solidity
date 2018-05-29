@@ -107,6 +107,9 @@ contract Managed is Permissioned {
         Retired
     }
 
+    // The version of the contract
+    uint256 public version;
+
     // The current state of the contract
     State public currentState;
 
@@ -160,8 +163,10 @@ contract Managed is Permissioned {
 
     /**
      * @dev Managed constructor.  Set the state to deployed.
+     * @param _version Version of this contract.
      */
-    constructor() public {
+    constructor(uint256 _version) public {
+        version = _version;
         currentState = State.Deployed;
     }
 
