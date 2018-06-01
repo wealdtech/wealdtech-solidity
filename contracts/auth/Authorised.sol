@@ -73,13 +73,17 @@ contract Authorised is Permissioned {
      * @return true if the action is authorised.
      */
     function authorise(bytes32 _actionHash, bytes _signature, bool _reusable) internal returns (bool) {
-        if (usedHashes[_actionHash] == true && !_reusable) {
-            // Cannot re-use
-            return false;
+        if (!_reusable) {
+            if (usedHashes[_actionHash] == true) {
+                // Cannot re-use
+                return false;
+            }
         }
         bool permitted = isPermitted(signer(_actionHash, _signature), PERM_AUTHORISER);
-        if (permitted && !_reusable) {
-            usedHashes[_actionHash] = true;
+        if (!_reusable) {
+            if (permitted) {
+                usedHashes[_actionHash] = true;
+            }
         }
         return permitted;
     }
