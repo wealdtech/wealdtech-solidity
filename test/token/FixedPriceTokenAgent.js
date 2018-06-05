@@ -22,7 +22,7 @@ contract('FixedPriceTokenAgent', accounts => {
     it('can approve token transfers by the faucet agent', async() => {
         var active = await faucet.active();
         assert.equal(active, false);
-        const tx = await token.approve(faucet.address, 1000, {
+        await token.approve(faucet.address, 1000, {
             from: tokenOwner
         });
         const tokens = await token.allowance(tokenOwner, faucet.address);
@@ -44,7 +44,7 @@ contract('FixedPriceTokenAgent', accounts => {
     });
 
     it('can exchange Ether for tokens', async() => {
-        const tx = await faucet.sendTransaction({
+        await faucet.sendTransaction({
             from: requestor,
             value: 10
         });
