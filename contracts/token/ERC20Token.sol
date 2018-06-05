@@ -1,6 +1,7 @@
 pragma solidity ^0.4.21;
 
 import './IERC20.sol';
+import '../auth/Authorised.sol';
 import '../lifecycle/Managed.sol';
 import '../math/SafeMath.sol';
 import './DividendTokenStore.sol';
@@ -10,7 +11,8 @@ import './DividendTokenStore.sol';
  * @title ERC20Token
  *        ERC20Token is an ERC-20 compliant token implementation with
  *        significantly upgraded functionality including a separate token store,
- *        cheap bulk transfers, efficient dividends, and easy upgrading.
+ *        third party transfers, cheap bulk transfers, efficient dividends,
+ *        and easy upgrading.
  *
  *        The token is fully permissioned.  Permissions to carry out operations
  *        can be given to one or more addresses.  This increases the power of
@@ -43,7 +45,7 @@ import './DividendTokenStore.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract ERC20Token is IERC20, Managed {
+contract ERC20Token is IERC20, Authorised, Managed {
     using SafeMath for uint256;
 
     // Definition for the token
@@ -158,43 +160,31 @@ contract ERC20Token is IERC20, Managed {
     }
 
     /**
-     * @dev Carry out operations prior to upgrading to a new contract.
-     *      This should give the new contract access to the token store.
+     * @dev transfer tokens using third-party authorisation.
+     *      To create a third party transfer the sender signs a message
+     *      containing the following items:
+     *        - address of this contract
+     *        - address of the sender
+     *        - address of the recipient
+     *        - number of tokens to transfer
+     *        - a unique 256-bit number, to avoid replay attacks
+     *      This transaction can be submitted by anyone with a valid signature;
+     *      because the recipient and value are part of the signature the
+     *      submitter has no degrees of freedom.
+     * 
+     * @param _sender the source address of the tokens
+     * @param _recipient the recipient address of the tokens
+     * @param _value the value of the transfer
+     * @param _nonce a unique number to avoid replay attacks
+     * @param _signature the signature as described above
      */
-    function preUpgrade(address _supercededBy) public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
-        require(Managed(_supercededBy).version() > version);
-        // Add the new contract to the list of superusers of the token store
-        store.setPermission(_supercededBy, PERM_SUPERUSER, true);
-        super.preUpgrade(_supercededBy);
-    }
-
-    /**
-     * @dev Carry out operations when upgrading to a new contract.
-     */
-    function upgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
-        super.upgrade();
-    }
-
-    /**
-     * @dev Commit the upgrade.  No going back from here
-     */
-    function commitUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
-        // Remove ourself from the list of superusers of the token store
-        store.setPermission(this, PERM_SUPERUSER, false);
-        super.commitUpgrade();
-    }
-
-    /**
-     * @dev revert the upgrade.  Will only work prior to committing
-     */
-    function revertUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
-        // Remove the contract from the list of superusers of the token store.
-        // Note that if this is called after commitUpgrade() then it will fail
-        // as we will no longer have permission to do this.
-        if (supercededBy != 0) {
-            store.setPermission(supercededBy, PERM_SUPERUSER, false);
-        }
-        super.revertUpgrade();
+    function transferTP(address _sender, address _recipient, uint256 _value, uint256 _nonce, bytes _signature) public sync(_sender) sync(_recipient) ifInState(State.Active) returns (bool) {
+        // Authorise if the signature is either specific to this recipient or for anyone
+        require(authorise(keccak256(abi.encodePacked(address(this), _sender, _recipient, _value, _nonce)), _signature, false));
+        require(_recipient != address(this));
+        store.transfer(_sender, _recipient, _value);
+        emit Transfer(_sender, _recipient, _value);
+        return true;
     }
 
     /**
@@ -271,4 +261,49 @@ contract ERC20Token is IERC20, Managed {
         emit Approval(msg.sender, _recipient, _value);
         return true;
     }
+
+    //
+    // Lifecycle management functions
+    //
+
+    /**
+     * @dev Carry out operations prior to upgrading to a new contract.
+     *      This should give the new contract access to the token store.
+     */
+    function preUpgrade(address _supercededBy) public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
+        require(Managed(_supercededBy).version() > version);
+        // Add the new contract to the list of superusers of the token store
+        store.setPermission(_supercededBy, PERM_SUPERUSER, true);
+        super.preUpgrade(_supercededBy);
+    }
+
+    /**
+     * @dev Carry out operations when upgrading to a new contract.
+     */
+    function upgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Active) {
+        super.upgrade();
+    }
+
+    /**
+     * @dev Commit the upgrade.  No going back from here
+     */
+    function commitUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
+        // Remove ourself from the list of superusers of the token store
+        store.setPermission(this, PERM_SUPERUSER, false);
+        super.commitUpgrade();
+    }
+
+    /**
+     * @dev revert the upgrade.  Will only work prior to committing
+     */
+    function revertUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
+        // Remove the contract from the list of superusers of the token store.
+        // Note that if this is called after commitUpgrade() then it will fail
+        // as we will no longer have permission to do this.
+        if (supercededBy != 0) {
+            store.setPermission(supercededBy, PERM_SUPERUSER, false);
+        }
+        super.revertUpgrade();
+    }
+
 }

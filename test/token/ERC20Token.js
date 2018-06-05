@@ -2,16 +2,17 @@
 
 const assertRevert = require('../helpers/assertRevert');
 const ERC20Token = artifacts.require('./ERC20Token.sol');
+const sha3 = require('solidity-sha3').default;
 
 function pack(addr, value) {
     return '0x' + ('000000000000000000000000' + value.toString(16)).slice(-24) + addr.slice(2);
 }
 
-contract('ERC20Token', accounts => {
-    var instance;
-    var oldInstance;
 
-    let expectedBalance0 = 10000;
+contract('ERC20Token', accounts => {
+    var oldInstance;
+    var instance;
+    let expectedBalances = [10000,0,0,0,0,0,0,0,0,0]
 
     it('has an initial balance', async function() {
         instance = await ERC20Token.new(1, 'Test token', 'TST', 2, 10000, 0, {
@@ -21,32 +22,42 @@ contract('ERC20Token', accounts => {
         await instance.activate({
             from: accounts[0]
         });
-        var balance = await instance.balanceOf(accounts[0]);
-        assert.equal(await instance.balanceOf(accounts[0]), expectedBalance0);
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer normally', async function() {
-        var tx = await instance.transfer(accounts[1], 1);
-        assert.equal(await instance.balanceOf(accounts[0]), 9999);
-        assert.equal(await instance.balanceOf(accounts[1]), 1);
+        await instance.transfer(accounts[1], 1);
+        expectedBalances[0] -= 1;
+        expectedBalances[1] += 1;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer multiple (1)', async function() {
         var amounts = [];
         amounts.push(pack(accounts[1], 1));
-        var tx = await instance.bulkTransfer(amounts);
-        assert.equal(await instance.balanceOf(accounts[0]), 9998);
-        assert.equal(await instance.balanceOf(accounts[1]), 2);
+        await instance.bulkTransfer(amounts);
+        expectedBalances[0] -= 1;
+        expectedBalances[1] += 1;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer multiple (2)', async function() {
         var amounts = [];
         amounts.push(pack(accounts[1], 2));
         amounts.push(pack(accounts[2], 3));
-        var tx = await instance.bulkTransfer(amounts);
-        assert.equal(await instance.balanceOf(accounts[0]), 9993);
-        assert.equal(await instance.balanceOf(accounts[1]), 4);
-        assert.equal(await instance.balanceOf(accounts[2]), 3);
+        await instance.bulkTransfer(amounts);
+        expectedBalances[0] -= 5;
+        expectedBalances[1] += 2;
+        expectedBalances[2] += 3;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer multiple (3)', async function() {
@@ -54,11 +65,14 @@ contract('ERC20Token', accounts => {
         amounts.push(pack(accounts[1], 2));
         amounts.push(pack(accounts[2], 3));
         amounts.push(pack(accounts[3], 4));
-        var tx = await instance.bulkTransfer(amounts);
-        assert.equal(await instance.balanceOf(accounts[0]), 9984);
-        assert.equal(await instance.balanceOf(accounts[1]), 6);
-        assert.equal(await instance.balanceOf(accounts[2]), 6);
-        assert.equal(await instance.balanceOf(accounts[3]), 4);
+        await instance.bulkTransfer(amounts);
+        expectedBalances[0] -= 9;
+        expectedBalances[1] += 2;
+        expectedBalances[2] += 3;
+        expectedBalances[3] += 4;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer multiple (4)', async function() {
@@ -66,11 +80,14 @@ contract('ERC20Token', accounts => {
         amounts.push(pack(accounts[1], 100));
         amounts.push(pack(accounts[2], 100));
         amounts.push(pack(accounts[3], 100));
-        var tx = await instance.bulkTransfer(amounts);
-        assert.equal(await instance.balanceOf(accounts[0]), 9684);
-        assert.equal(await instance.balanceOf(accounts[1]), 106);
-        assert.equal(await instance.balanceOf(accounts[2]), 106);
-        assert.equal(await instance.balanceOf(accounts[3]), 104);
+        await instance.bulkTransfer(amounts);
+        expectedBalances[0] -= 300;
+        expectedBalances[1] += 100;
+        expectedBalances[2] += 100;
+        expectedBalances[3] += 100;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer multiple (9)', async function() {
@@ -85,7 +102,19 @@ contract('ERC20Token', accounts => {
         amounts.push(pack(accounts[8], 1));
         amounts.push(pack(accounts[9], 1));
         await instance.bulkTransfer(amounts);
-        assert.equal(await instance.balanceOf(accounts[0]), 9675);
+        expectedBalances[0] -= 9;
+        expectedBalances[1] += 1;
+        expectedBalances[2] += 1;
+        expectedBalances[3] += 1;
+        expectedBalances[4] += 1;
+        expectedBalances[5] += 1;
+        expectedBalances[6] += 1;
+        expectedBalances[7] += 1;
+        expectedBalances[8] += 1;
+        expectedBalances[9] += 1;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('can transfer multiple (100)', async function() {
@@ -94,6 +123,63 @@ contract('ERC20Token', accounts => {
             amounts.push(pack('0x' + ('0000000000000000000000000000000000000000' + i.toString(16)).slice(-40), 1));
         }
         await instance.bulkTransfer(amounts);
+        expectedBalances[0] -= 100;
+        // Destinations aren't in the accounts list so no need to alter their balances
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
+    });
+
+    it('can carry out a targeted third-party transfer', async function() {
+        // User who wants to allow the third-party transfer signs an appropriate message
+        const dataHash = sha3(instance.address, accounts[0], accounts[1], '0x00000000000000000000000000000000000000000000000000000000000003E8', '0x0000000000000000000000000000000000000000000000000000000000000001');
+        const signature = await web3.eth.sign(accounts[0], dataHash);
+
+        // Ensure that the transaction can be submitted by an account with no relationship to the sender or recipient
+        await instance.transferTP(accounts[0], accounts[1], 1000, 1, signature, {
+            from: accounts[4]
+        });
+        expectedBalances[0] -= 1000;
+        expectedBalances[1] += 1000;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
+
+        // Ensure we cannot reuse the signature
+        try {
+            await instance.transferTP(accounts[0], accounts[1], 1000, 1, signature, {
+                from: accounts[4]
+            });
+            assert.fail();
+        } catch (error) {
+            assertRevert(error);
+        }
+    });
+
+    it('can carry out an untargeted third-party transfer', async function() {
+        // User who wants to allow the third-party transfer signs an appropriate message
+        const dataHash = sha3(instance.address, accounts[0], '0x00000000000000000000000000000000000000000000000000000000000003E8', '0x0000000000000000000000000000000000000000000000000000000000000001');
+        const signature = await web3.eth.sign(accounts[0], dataHash);
+
+        // Ensure that the transaction can be submitted by an account with no relationship to the sender or recipient
+        await instance.transferTP(accounts[0], accounts[5], 1000, 1, signature, {
+            from: accounts[4]
+        });
+        expectedBalances[0] -= 1000;
+        expectedBalances[5] += 1000;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
+
+        // Ensure we cannot reuse the signature
+        try {
+            await instance.transferTP(accounts[0], accounts[6], 1000, 1, signature, {
+                from: accounts[7]
+            });
+            assert.fail();
+        } catch (error) {
+            assertRevert(error);
+        }
     });
 
     it('can upgrade to a new contract', async function() {
@@ -106,7 +192,9 @@ contract('ERC20Token', accounts => {
             from: accounts[1]
         });
         // Ensure that the new instance has access to the store
-        assert.equal(await instance.balanceOf(accounts[0]), 9575);
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
 
         // Carry out the upgrade
         await oldInstance.preUpgrade(instance.address, {
@@ -120,13 +208,14 @@ contract('ERC20Token', accounts => {
         });
 
         // Ensure the new contract can carry out transfers
-        assert.equal(await instance.balanceOf(accounts[0]), 9575);
-        assert.equal(await instance.balanceOf(accounts[1]), 107);
         await instance.transfer(accounts[1], 1, {
             from: accounts[0]
         });
-        assert.equal(await instance.balanceOf(accounts[0]), 9574);
-        assert.equal(await instance.balanceOf(accounts[1]), 108);
+        expectedBalances[0] -= 1;
+        expectedBalances[1] += 1;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('cannot be accessed by an old contract', async function() {
@@ -162,13 +251,14 @@ contract('ERC20Token', accounts => {
         });
 
         // Ensure the new contract can carry out transfers
-        assert.equal(await instance.balanceOf(accounts[0]), 9574);
-        assert.equal(await instance.balanceOf(accounts[1]), 108);
         await instance.transfer(accounts[1], 1, {
             from: accounts[0]
         });
-        assert.equal(await instance.balanceOf(accounts[0]), 9573);
-        assert.equal(await instance.balanceOf(accounts[1]), 109);
+        expectedBalances[0] -= 1;
+        expectedBalances[1] += 1;
+        for (var i = 0; i < expectedBalances.length; i++) {
+            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
+        }
     });
 
     it('cannot be upgraded by someone else', async function() {
