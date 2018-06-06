@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.23;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +44,7 @@ contract FixedPriceTokenAgent is ITokenAgent {
     // The number of tokens per Wei.
     uint256 tokensPerWei;
 
-    function FixedPriceTokenAgent(IERC20 _token, address _provider, uint256 _tokensPerWei) public {
+    constructor(IERC20 _token, address _provider, uint256 _tokensPerWei) public {
         token = _token;
         provider = _provider;
         require(_tokensPerWei > 0);
@@ -70,7 +70,7 @@ contract FixedPriceTokenAgent is ITokenAgent {
      * supplied.
      */
     function () public payable {
-        var amount = msg.value.mul(tokensPerWei);
+        uint256 amount = msg.value.mul(tokensPerWei);
         require(amount > 0);
         require(amount <= tokensAvailable());
         token.transferFrom(provider, msg.sender, amount);
