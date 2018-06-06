@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.4.23;
 
 import '../../contracts/auth/Permissioned.sol';
 
@@ -11,7 +11,7 @@ contract PermissionedTest1 is Permissioned {
     uint256 public intValue = 0;
     bool public boolValue = false;
 
-    function PermissionedTest1() public {
+    constructor() public {
         intValue = 0;
         boolValue = false;
     }
