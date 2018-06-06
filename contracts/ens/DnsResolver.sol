@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import './PublicResolver.sol';
 
@@ -66,7 +66,7 @@ contract DnsResolver is PublicResolver {
     }
 
     // DnsResolver requires the ENS registry to confirm ownership of nodes
-    function DnsResolver(AbstractENS _registry) public PublicResolver(_registry) {
+    constructor(AbstractENS _registry) public PublicResolver(_registry) {
         registry = _registry;
     }
 
