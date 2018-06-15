@@ -1,6 +1,7 @@
-const ENS = artifacts.require("./ENS.sol");
-const MockEnsRegistrar = artifacts.require("./contracts/MockEnsRegistrar.sol");
-const DnsResolver = artifacts.require("./contracts/ens/DnsResolver.sol");
+const ENS = artifacts.require("ENS");
+const MockEnsRegistrar = artifacts.require("MockEnsRegistrar");
+const DnsResolver = artifacts.require("DnsResolver");
+
 const assertRevert = require('../helpers/assertRevert');
 
 const sha3 = require('solidity-sha3').default;
@@ -26,112 +27,84 @@ contract('DnsResolver', (accounts) => {
     it('should set up the contracts', async() => {
         registry = await ENS.new({ from: registryOwner });
         registrar = await MockEnsRegistrar.new(registry.address, ethNameHash, { from: registrarOwner, value: web3.toWei(10, 'ether') });
-        await registry.setSubnodeOwner("0x0", ethLabelHash, registrar.address);
+        await registry.setSubnodeOwner("0x0", ethLabelHash, registrar.address, { from: registryOwner });
         resolver = await DnsResolver.new(registry.address, { from: resolverOwner })
     });
 
-    it('should track node entries correctly', async() => {
+    it('should create new records', async() => {
         const testDomain = 'test1';
         const testDomainLabelHash = sha3(testDomain);
         const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
-        const testName = 'test1.eth.';
-        const testNameHash = sha3(testName);
 
         await registrar.register(testDomainLabelHash, { from: testDomainOwner });
 
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
+        // a.test1.eth. 3600 IN A 1.2.3.4
+        const arec = '016105746573743103657468000001000100000e10000401020304';
+        // b.test1.eth. 3600 IN A 2.3.4.5
+        const b1rec = '016205746573743103657468000001000100000e10000402030405';
+        // b.test1.eth. 3600 IN A 3.4.5.6
+        const b2rec ='016205746573743103657468000001000100000e10000403040506';
+        // test1.eth. 86400 IN SOA ns1.ethdns.xyz. hostmaster.test1.eth. 2018061501 15620 1800 1814400 14400
+        const soarec = '05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840';
+        const rec = '0x' + arec + b1rec + b2rec + soarec;
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
+        await resolver.setDnsRecords(testDomainNameHash, rec, { from: testDomainOwner });
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 2, '0x012345', '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test1.eth.')), 1), '0x016105746573743103657468000001000100000e10000401020304');
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), '0x016205746573743103657468000001000100000e10000402030405016205746573743103657468000001000100000e10000403040506');
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840');
+    })
 
-        await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 2, '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
-
-        await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 1, '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
-    });
-
-    it('should not double-count node entries', async() => {
-        const testDomain = 'test2';
+    it('should update existing records', async() => {
+        const testDomain = 'test1';
         const testDomainLabelHash = sha3(testDomain);
         const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
-        const testName = 'test2.eth.';
-        const testNameHash = sha3(testName);
 
-        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
+        // a.test1.eth. 3600 IN A 4.5.6.7
+        const arec = '016105746573743103657468000001000100000e10000404050607';
+        // test1.eth. 86400 IN SOA ns1.ethdns.xyz. hostmaster.test1.eth. 2018061502 15620 1800 1814400 14400
+        const soarec = '05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840';
+        const rec = '0x' + arec + soarec;
 
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
+        await resolver.setDnsRecords(testDomainNameHash, rec, { from: testDomainOwner });
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x012345', '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test1.eth.')), 1), '0x016105746573743103657468000001000100000e10000404050607');
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840');
+    })
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x543210', '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), true);
-
-        await resolver.clearDnsRecord(testDomainNameHash, testNameHash, 1, '', { from: testDomainOwner });
-        assert.equal(await resolver.hasDnsRecords(testDomainNameHash, testNameHash), false);
-    });
-
-    it('should update SOA correctly', async() => {
-        const testDomain = 'test3';
+    it('should delete existing records', async() => {
+        const testDomain = 'test1';
         const testDomainLabelHash = sha3(testDomain);
         const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
-        const testName = 'test3.eth.';
-        const testNameHash = sha3(testName);
 
-        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
+        // b.test1.eth. 3600 IN A
+        const brec = '016205746573743103657468000001000100000e100000';
+        // test1.eth. 86400 IN SOA ns1.ethdns.xyz. hostmaster.test1.eth. 2018061503 15620 1800 1814400 14400
+        const soarec = '05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840';
+        const rec = '0x' + brec + soarec;
 
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x111111', '0xffffff', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1), '0x111111');
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xffffff');
-
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x222222', '', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1), '0x222222');
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xffffff');
-
-        await resolver.setDnsRecord(testDomainNameHash, testNameHash, 1, '0x333333', '0xeeeeee', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 1), '0x333333');
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xeeeeee');
-
-        await resolver.setDnsRecord(testDomainNameHash, '', 6, '0xdddddd', '', { from: testDomainOwner });
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, testNameHash, 6), '0xdddddd');
-    });
-
-    it('cannot set SOA incorrectly', async() => {
-        const testDomain = 'test4';
-        const testDomainLabelHash = sha3(testDomain);
-        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
-        const testName = 'test4.eth.';
-        const testNameHash = sha3(testName);
-
-        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
-
-        try {
-            // With double SOA data == invalid
-            await resolver.setDnsRecord(testDomainNameHash, '', 6, '0x111111', '0x222222', { from: testDomainOwner });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-    });
-
-    it('cannot set RRSIG directly', async() => {
-        const testDomain = 'test5';
-        const testDomainLabelHash = sha3(testDomain);
-        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
-        const testName = 'test5.eth.';
-        const testNameHash = sha3(testName);
-
-        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
-
-        try {
-            await resolver.setDnsRecord(testDomainNameHash, testNameHash, 46, '0x111111', '0xffffff', { from: testDomainOwner });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-    });
+        await resolver.setDnsRecords(testDomainNameHash, rec, { from: testDomainOwner });
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), '0x');
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840');
+    })
 });
+
+function dnsName(name) {
+    // strip leading and trailing .
+    const n = name.replace(/^\.|\.$/gm, '');
+
+    var bufLen = (n === '') ? 1 : n.length + 2;
+    var buf = Buffer.allocUnsafe(bufLen);
+
+    offset = 0;
+    if (n.length) {
+        const list = n.split('.');
+        for (let i = 0; i < list.length; i++) {
+            const len = buf.write(list[i], offset + 1)
+                buf[offset] = len;
+                offset += len + 1;
+        }
+    }
+    buf[offset++] = 0;
+    return '0x' + buf.reduce((output, elem) => (output + ('0' + elem.toString(16)).slice(-2)), '');
+}
