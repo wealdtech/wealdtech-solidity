@@ -1,6 +1,6 @@
 const ENS = artifacts.require("ENS");
 const MockEnsRegistrar = artifacts.require("MockEnsRegistrar");
-const DnsResolver = artifacts.require("DnsResolver");
+const DNSResolver = artifacts.require("DNSResolver");
 
 const assertRevert = require('../helpers/assertRevert');
 
@@ -12,7 +12,7 @@ const mine = () => web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_mine
 const ethLabelHash = sha3('eth');
 const ethNameHash = sha3('0x0000000000000000000000000000000000000000000000000000000000000000', ethLabelHash);
 
-contract('DnsResolver', (accounts) => {
+contract('DNSResolver', (accounts) => {
     // Accounts
     const registryOwner = accounts[0];
     const registrarOwner = accounts[1];
@@ -28,7 +28,7 @@ contract('DnsResolver', (accounts) => {
         registry = await ENS.new({ from: registryOwner });
         registrar = await MockEnsRegistrar.new(registry.address, ethNameHash, { from: registrarOwner, value: web3.toWei(10, 'ether') });
         await registry.setSubnodeOwner("0x0", ethLabelHash, registrar.address, { from: registryOwner });
-        resolver = await DnsResolver.new(registry.address, { from: resolverOwner })
+        resolver = await DNSResolver.new(registry.address, { from: resolverOwner })
     });
 
     it('should create new records', async() => {
@@ -48,7 +48,7 @@ contract('DnsResolver', (accounts) => {
         const soarec = '05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840';
         const rec = '0x' + arec + b1rec + b2rec + soarec;
 
-        await resolver.setDnsRecords(testDomainNameHash, rec, { from: testDomainOwner });
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
 
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test1.eth.')), 1), '0x016105746573743103657468000001000100000e10000401020304');
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), '0x016205746573743103657468000001000100000e10000402030405016205746573743103657468000001000100000e10000403040506');
@@ -66,7 +66,7 @@ contract('DnsResolver', (accounts) => {
         const soarec = '05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840';
         const rec = '0x' + arec + soarec;
 
-        await resolver.setDnsRecords(testDomainNameHash, rec, { from: testDomainOwner });
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
 
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test1.eth.')), 1), '0x016105746573743103657468000001000100000e10000404050607');
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840');
@@ -83,7 +83,7 @@ contract('DnsResolver', (accounts) => {
         const soarec = '05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840';
         const rec = '0x' + brec + soarec;
 
-        await resolver.setDnsRecords(testDomainNameHash, rec, { from: testDomainOwner });
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), '0x');
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840');
     })

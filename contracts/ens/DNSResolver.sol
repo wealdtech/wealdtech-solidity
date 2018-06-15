@@ -19,7 +19,7 @@ import './AbstractENS.sol';
 
 
 /**
- * @title DnsResolver
+ * @title DNSResolver
  *        A DNS resolver that handles all common types of DNS resource record,
  *        plus the ability to expand to new types arbitrarily.
  *
@@ -37,7 +37,7 @@ import './AbstractENS.sol';
  *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract DnsResolver is PublicResolver {
+contract DNSResolver is PublicResolver {
     using RRUtils for *;
     using BytesUtils for bytes;
 
@@ -56,7 +56,7 @@ contract DnsResolver is PublicResolver {
         _;
     }
 
-    // DnsResolver requires the ENS registry to confirm ownership of nodes
+    // DNSResolver requires the ENS registry to confirm ownership of nodes
     constructor(AbstractENS _registry) public PublicResolver(_registry) {
         registry = _registry;
     }
@@ -69,7 +69,7 @@ contract DnsResolver is PublicResolver {
     
     event Updated(bytes32 node, bytes name, uint16 resource, uint256 length);
     event Deleted(bytes32 node, bytes name, uint16 resource);
-    function setDnsRecords(bytes32 node, bytes data) public onlyNodeOwner(node) {
+    function setDNSRecords(bytes32 node, bytes data) public onlyNodeOwner(node) {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
@@ -124,7 +124,7 @@ contract DnsResolver is PublicResolver {
      * @param node the namehash of the node for which to store the zone
      * @param data the DNS zone in wire format
      */
-    function setDnsZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
+    function setDNSZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
         zones[node] = data;
     }
 
@@ -141,7 +141,7 @@ contract DnsResolver is PublicResolver {
      * Clear the values for a DNS zone.
      * @param node the namehash of the node for which to clear the zone
      */
-    function clearDnsZone(bytes32 node) public onlyNodeOwner(node) {
+    function clearDNSZone(bytes32 node) public onlyNodeOwner(node) {
         delete(zones[node]);
     }
 }
