@@ -39,8 +39,8 @@ contract PublicResolver {
     AbstractENS ens;
     mapping(bytes32=>Record) records;
 
-    modifier only_owner(bytes32 node) {
-        require(ens.owner(node) == msg.sender);
+    modifier only_owner(bytes32 _node) {
+        require(ens.owner(_node) == msg.sender);
         _;
     }
 
@@ -79,12 +79,12 @@ contract PublicResolver {
     /**
      * Sets the address associated with an ENS node.
      * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param addr The address to set.
+     * @param _node The node to update.
+     * @param _addr The address to set.
      */
-    function setAddr(bytes32 node, address addr) public only_owner(node) {
-        records[node].addr = addr;
-        emit AddrChanged(node, addr);
+    function setAddr(bytes32 _node, address _addr) public only_owner(_node) {
+        records[_node].addr = _addr;
+        emit AddrChanged(_node, _addr);
     }
 
     /**
@@ -103,12 +103,12 @@ contract PublicResolver {
      * May only be called by the owner of that node in the ENS registry.
      * Note that this resource type is not standardized, and will likely change
      * in future to a resource type based on multihash.
-     * @param node The node to update.
-     * @param hash The content hash to set
+     * @param _node The node to update.
+     * @param _hash The content hash to set
      */
-    function setContent(bytes32 node, bytes32 hash) public only_owner(node) {
-        records[node].content = hash;
-        emit ContentChanged(node, hash);
+    function setContent(bytes32 _node, bytes32 _hash) public only_owner(_node) {
+        records[_node].content = _hash;
+        emit ContentChanged(_node, _hash);
     }
 
     /**
@@ -124,12 +124,12 @@ contract PublicResolver {
     /**
      * Sets the name associated with an ENS node, for reverse records.
      * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param name The name to set.
+     * @param _node The node to update.
+     * @param _name The name to set.
      */
-    function setName(bytes32 node, string name) public only_owner(node) {
-        records[node].name = name;
-        emit NameChanged(node, name);
+    function setName(bytes32 _node, string _name) public only_owner(_node) {
+        records[_node].name = _name;
+        emit NameChanged(_node, _name);
     }
 
     /**
@@ -141,10 +141,9 @@ contract PublicResolver {
      * @return data The ABI data
      */
     function ABI(bytes32 node, uint256 contentTypes) public constant returns (uint256 contentType, bytes data) {
-        var record = records[node];
         for(contentType = 1; contentType <= contentTypes; contentType <<= 1) {
-            if ((contentType & contentTypes) != 0 && record.abis[contentType].length > 0) {
-                data = record.abis[contentType];
+            if ((contentType & contentTypes) != 0 && records[node].abis[contentType].length > 0) {
+                data = records[node].abis[contentType];
                 return;
             }
         }
@@ -155,16 +154,16 @@ contract PublicResolver {
      * Sets the ABI associated with an ENS node.
      * Nodes may have one ABI of each content type. To remove an ABI, set it to
      * the empty string.
-     * @param node The node to update.
-     * @param contentType The content type of the ABI
-     * @param data The ABI data.
+     * @param _node The node to update.
+     * @param _contentType The content type of the ABI
+     * @param _data The ABI data.
      */
-    function setABI(bytes32 node, uint256 contentType, bytes data) public only_owner(node) {
+    function setABI(bytes32 _node, uint256 _contentType, bytes _data) public only_owner(_node) {
         // Content types must be powers of 2
-        require(((contentType - 1) & contentType) == 0);
+        require(((_contentType - 1) & _contentType) == 0);
         
-        records[node].abis[contentType] = data;
-        emit ABIChanged(node, contentType);
+        records[_node].abis[_contentType] = _data;
+        emit ABIChanged(_node, _contentType);
     }
     
     /**
@@ -179,13 +178,13 @@ contract PublicResolver {
     
     /**
      * Sets the SECP256k1 public key associated with an ENS node.
-     * @param node The ENS node to query
-     * @param x the X coordinate of the curve point for the public key.
-     * @param y the Y coordinate of the curve point for the public key.
+     * @param _node The ENS node to query
+     * @param _x the X coordinate of the curve point for the public key.
+     * @param _y the Y coordinate of the curve point for the public key.
      */
-    function setPubkey(bytes32 node, bytes32 x, bytes32 y) public only_owner(node) {
-        records[node].pubkey = PublicKey(x, y);
-        emit PubkeyChanged(node, x, y);
+    function setPubkey(bytes32 _node, bytes32 _x, bytes32 _y) public only_owner(_node) {
+        records[_node].pubkey = PublicKey(_x, _y);
+        emit PubkeyChanged(_node, _x, _y);
     }
 
     /**
@@ -201,12 +200,12 @@ contract PublicResolver {
     /**
      * Sets the text data associated with an ENS node and key.
      * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param key The key to set.
-     * @param value The text data value to set.
+     * @param _node The node to update.
+     * @param _key The key to set.
+     * @param _value The text data value to set.
      */
-    function setText(bytes32 node, string key, string value) public only_owner(node) {
-        records[node].text[key] = value;
-        emit TextChanged(node, key, key);
+    function setText(bytes32 _node, string _key, string _value) public only_owner(_node) {
+        records[_node].text[_key] = _value;
+        emit TextChanged(_node, _key, _key);
     }
 }

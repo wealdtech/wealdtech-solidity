@@ -60,11 +60,11 @@ contract ENSReverseRegister {
     /**
      * @dev initialise the contract with the address of the reverse registrar
      */
-    function ENSReverseRegister(address registry, string name) public {
+    constructor(address registry, string name) public {
         if (registry != 0) {
             // Fetch the address of the ENS reverse registrar
             // Hex value is namehash('addr.reverse')
-            var reverseRegistrar = RegistryRef(registry).owner(0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2);
+            address reverseRegistrar = RegistryRef(registry).owner(0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2);
             // If it exists then set our reverse resolution
             if (reverseRegistrar != 0) {
                 ReverseRegistrarRef(reverseRegistrar).setName(name);
