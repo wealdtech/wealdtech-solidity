@@ -47,6 +47,11 @@ contract DNSResolver is PublicResolver {
     // node => name => resource => data
     mapping(bytes32=>mapping(bytes32=>mapping(uint16=>bytes))) public records;
 
+    // Count of number of entries for a given name.  Required for DNS resolvers
+    // when resolving wildcards
+    // node => name => number of records
+    mapping(bytes32=>mapping(bytes32=>uint16)) public nameEntriesCount;
+
     // The ENS registry
     AbstractENS registry;
 
@@ -74,36 +79,51 @@ contract DNSResolver is PublicResolver {
         uint256 offset = 0;
         bytes memory name;
         bytes memory value;
+        bytes32 nameHash;
         // Iterate over the data to add the resource records
         for(RRUtils.RRIterator memory iter = data.iterateRRs(0); !iter.done(); iter.next()) {
             if (resource == 0) {
                 resource = iter.dnstype;
                 name = bytes(iter.name());
+                nameHash = keccak256(name);
                 value = bytes(iter.rdata());
             } else {
                 bytes memory newName = bytes(iter.name());
                 if (resource != iter.dnstype || !name.equals(newName)) {
                     bytes memory rrData = data.substring(offset, iter.offset - offset);
                     if (value.length == 0) {
-                        delete(records[node][keccak256(name)][resource]);
+                        if (records[node][nameHash][resource].length != 0) {
+                            nameEntriesCount[node][nameHash]--;
+                        }
+                        delete(records[node][nameHash][resource]);
                         emit Deleted(node, name, resource);
                     } else {
-                        records[node][keccak256(name)][resource] = rrData;
+                        if (records[node][nameHash][resource].length == 0) {
+                            nameEntriesCount[node][nameHash]++;
+                        }
+                        records[node][nameHash][resource] = rrData;
                         emit Updated(node, name, resource, rrData.length);
                     }
                     resource = iter.dnstype;
                     offset = iter.offset;
                     name = newName;
+                    nameHash = keccak256(name);
                     value = bytes(iter.rdata());
                 }
             }
         }
         rrData = data.substring(offset, data.length - offset);
         if (value.length == 0) {
-            delete(records[node][keccak256(name)][resource]);
+            if (records[node][nameHash][resource].length != 0) {
+                nameEntriesCount[node][nameHash]--;
+            }
+            delete(records[node][nameHash][resource]);
             emit Deleted(node, name, resource);
         } else {
-            records[node][keccak256(name)][resource] = rrData;
+            if (records[node][nameHash][resource].length == 0) {
+                nameEntriesCount[node][nameHash]++;
+            }
+            records[node][nameHash][resource] = rrData;
             emit Updated(node, name, resource, rrData.length);
         }
     }
@@ -139,9 +159,17 @@ contract DNSResolver is PublicResolver {
 
     /**
      * Clear the values for a DNS zone.
-     * @param node the namehash of the node for which to clear the zone
+     * @param _node the namehash of the node for which to clear the zone
      */
-    function clearDNSZone(bytes32 node) public onlyNodeOwner(node) {
-        delete(zones[node]);
+    function clearDNSZone(bytes32 _node) public onlyNodeOwner(_node) {
+        delete(zones[_node]);
+    }
+
+    /**
+     * Check if a given node has records
+     * @param _node the namehash of the node for which to check the records
+     */
+    function hasDNSRecords(bytes32 _node, bytes32 x) public view returns (bool) {
+        return (nameEntriesCount[_node][x] != 0);
     }
 }

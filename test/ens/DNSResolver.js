@@ -84,8 +84,43 @@ contract('DNSResolver', (accounts) => {
         const rec = '0x' + brec + soarec;
 
         await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
+
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), '0x');
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840');
+    })
+
+    it('should keep track of entries', async() => {
+        const testDomain = 'test1';
+        const testDomainLabelHash = sha3(testDomain);
+        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
+
+        // c.test1.eth. 3600 IN A 1.2.3.4
+        const crec = '016305746573743103657468000001000100000e10000401020304';
+        const rec = '0x' + crec;
+
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
+
+        // Initial check
+        var hasEntries = await resolver.hasDNSRecords(testDomainNameHash, sha3(dnsName('c.test1.eth.')), { from: testDomainOwner });
+        assert.equal(hasEntries, true);
+        hasEntries = await resolver.hasDNSRecords(testDomainNameHash, sha3(dnsName('d.test1.eth.')), { from: testDomainOwner });
+        assert.equal(hasEntries, false);
+
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
+
+        // Update makes no difference
+        hasEntries = await resolver.hasDNSRecords(testDomainNameHash, sha3(dnsName('c.test1.eth.')), { from: testDomainOwner });
+        assert.equal(hasEntries, true);
+
+        // c.test1.eth. 3600 IN A
+        const crec2 = '016305746573743103657468000001000100000e100000';
+        const rec2 = '0x' + crec2;
+
+        await resolver.setDNSRecords(testDomainNameHash, rec2, { from: testDomainOwner });
+
+        // Removal returns to 0
+        hasEntries = await resolver.hasDNSRecords(testDomainNameHash, sha3(dnsName('c.test1.eth.')), { from: testDomainOwner });
+        assert.equal(hasEntries, false);
     })
 });
 

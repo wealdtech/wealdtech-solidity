@@ -182,6 +182,10 @@ contract('ERC20Token', accounts => {
         }
     });
 
+    it('can use approveAndCall()', async function() {
+        assert.fail('TODO');
+    });
+
     it('can upgrade to a new contract', async function() {
         oldInstance = instance;
         instance = await ERC20Token.new(2, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
