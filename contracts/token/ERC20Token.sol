@@ -7,6 +7,11 @@ import '../math/SafeMath.sol';
 import './DividendTokenStore.sol';
 
 
+contract TokenReceiver {
+    function receiveApproval(address,uint256,address,bytes) public;
+}
+
+
 /**
  * @title ERC20Token
  *        ERC20Token is an ERC-20 compliant token implementation with
@@ -226,7 +231,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
         approve(_recipient, _amount);
 
         // Make the call
-        _recipient.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _amount, this, _extraData);
+        TokenReceiver(_recipient).receiveApproval(msg.sender, _amount, this, _extraData);
         return true;
     }
 
