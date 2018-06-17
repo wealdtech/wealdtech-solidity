@@ -7,11 +7,6 @@ import '../math/SafeMath.sol';
 import './DividendTokenStore.sol';
 
 
-contract TokenReceiver {
-    function receiveApproval(address,uint256,address,bytes) public;
-}
-
-
 /**
  * @title ERC20Token
  *        ERC20Token is an ERC-20 compliant token implementation with
@@ -222,17 +217,6 @@ contract ERC20Token is IERC20, Authorised, Managed {
         store.burn(msg.sender, _amount);
         emit Transfer(msg.sender, 0, _amount);
         emit Burn(msg.sender, _amount);
-    }
-
-    /**
-      * @dev combine approval of spending tokens and calling the function that spends the tokens
-      */
-    function approveAndCall(address _recipient, uint256 _amount, bytes _extraData) public sync(msg.sender) sync(_recipient) returns (bool success) {
-        approve(_recipient, _amount);
-
-        // Make the call
-        TokenReceiver(_recipient).receiveApproval(msg.sender, _amount, this, _extraData);
-        return true;
     }
 
     //
