@@ -130,7 +130,7 @@ contract('ERC20Token', accounts => {
         }
     });
 
-    it('can carry out a targeted third-party transfer', async function() {
+    it('can carry out a third-party transfer', async function() {
         // User who wants to allow the third-party transfer signs an appropriate message
         const dataHash = sha3(instance.address, accounts[0], accounts[1], '0x00000000000000000000000000000000000000000000000000000000000003E8', '0x0000000000000000000000000000000000000000000000000000000000000001');
         const signature = await web3.eth.sign(accounts[0], dataHash);
@@ -154,36 +154,6 @@ contract('ERC20Token', accounts => {
         } catch (error) {
             assertRevert(error);
         }
-    });
-
-    it('can carry out an untargeted third-party transfer', async function() {
-        // User who wants to allow the third-party transfer signs an appropriate message
-        const dataHash = sha3(instance.address, accounts[0], '0x00000000000000000000000000000000000000000000000000000000000003E8', '0x0000000000000000000000000000000000000000000000000000000000000001');
-        const signature = await web3.eth.sign(accounts[0], dataHash);
-
-        // Ensure that the transaction can be submitted by an account with no relationship to the sender or recipient
-        await instance.transferTP(accounts[0], accounts[5], 1000, 1, signature, {
-            from: accounts[4]
-        });
-        expectedBalances[0] -= 1000;
-        expectedBalances[5] += 1000;
-        for (var i = 0; i < expectedBalances.length; i++) {
-            assert.equal(await instance.balanceOf(accounts[i]), expectedBalances[i]);
-        }
-
-        // Ensure we cannot reuse the signature
-        try {
-            await instance.transferTP(accounts[0], accounts[6], 1000, 1, signature, {
-                from: accounts[7]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-    });
-
-    it('can use approveAndCall()', async function() {
-        assert.fail('TODO');
     });
 
     it('can upgrade to a new contract', async function() {
