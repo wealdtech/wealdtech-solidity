@@ -79,7 +79,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
      * @dev Token creates the token with the required parameters.  If
      *      _tokenstore is supplied then the existing store is used, otherwise a
      *      new store is created with the other supplied parameters.
-     * @param _version the version of the contract
+     * @param _version the version of the contract (e.g. 1)
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _decimals the number of decimal places of the common unit (commonly 18)
