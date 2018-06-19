@@ -3,10 +3,10 @@
 const assertRevert = require('../helpers/assertRevert.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
-const SupplementAccountTokensSender = artifacts.require('SupplementAccountTokensSender');
+const SupplementWitholdingAccount = artifacts.require('SupplementWitholdingAccount');
 const ERC820Registry = artifacts.require('ERC820Registry');
 
-contract('SupplementAccountTokensSender', accounts => {
+contract('SupplementWitholdingAccount', accounts => {
     var erc777Instance;
     var erc820Instance;
     var instance;
@@ -44,7 +44,7 @@ contract('SupplementAccountTokensSender', accounts => {
     });
 
     it('creates the sender contract', async function() {
-        instance = await SupplementAccountTokensSender.new({
+        instance = await SupplementWitholdingAccount.new({
             from: accounts[0]
         });
     });
