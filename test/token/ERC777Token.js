@@ -3,9 +3,6 @@
 const assertRevert = require('../helpers/assertRevert.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
-const DenyLowValueTokensRecipient = artifacts.require('DenyLowValueTokensRecipient');
-const DenySpecifiedTokensSender = artifacts.require('DenySpecifiedTokensSender');
-const AllowSpecifiedTokensRecipient = artifacts.require('AllowSpecifiedTokensRecipient');
 const ERC820Registry = artifacts.require('ERC820Registry');
 
 function pack(addr, value) {
@@ -163,147 +160,20 @@ contract('ERC777Token', accounts => {
 
     it('cannot send to an unregistered contract', async function() {
         // Create an arbitary contract
-        var denyLowValueInstance = await DenyLowValueTokensRecipient.new({
-            from: accounts[3]
+        var contract = await ERC777Token.new(1, 'Any contract', 'ANY', granularity, initialSupply, 0, {
+            from: accounts[3],
+            gas: 10000000
         });
 
         // Try to send it some tokens
         try {
-            await instance.send(denyLowValueInstance.address, granularity, "", {
+            await instance.send(contract.address, granularity, "", {
                 from: accounts[0]
             });
             assert.fail();
         } catch (error) {
             assertRevert(error);
         }
-        await confirmBalances();
-    });
-
-    it('obeys a registered ERC777TokensRecipient', async function() {
-        // Create the ITokenRecipient
-        var recipientInstance = await DenyLowValueTokensRecipient.new({
-            from: accounts[3]
-        });
-
-        // Register the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[3], web3.sha3("ERC777TokensRecipient"), recipientInstance.address, {
-            from: accounts[3]
-        });
-
-        // Try sending a high-enough value so the recipient will allow it
-        await instance.send(accounts[3], granularity.mul(1000), "", {
-            from: accounts[0]
-        });
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(1000));
-        expectedBalances[3] = expectedBalances[3].add(granularity.mul(1000));
-        await confirmBalances();
-
-        // Try sending a too-low value so the recipient will reject it
-        try {
-            await instance.send(accounts[3], granularity, "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-
-        // Unregister the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[3], web3.sha3("ERC777TokensRecipient"), 0, {
-            from: accounts[3]
-        });
-
-        await confirmBalances();
-    });
-
-    it('handles a complex ERC777TokensRecipient', async function() {
-        // Create the ITokenRecipient
-        var recipientInstance = await AllowSpecifiedTokensRecipient.new({
-            from: accounts[4]
-        });
-
-        // Register the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[4], web3.sha3("ERC777TokensRecipient"), recipientInstance.address, {
-            from: accounts[4]
-        });
-
-        // Send; should fail as we have not allowed yet
-        try {
-            await instance.send(accounts[4], granularity, "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
-
-        // Now allow the contract to send the recipient tokens
-        await recipientInstance.addToken(instance.address, {
-            from: accounts[4]
-        });
-
-        // Send; should suceed
-        await instance.send(accounts[4], granularity, "", {
-            from: accounts[0]
-        });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[4] = expectedBalances[4].add(granularity);
-        await confirmBalances();
-
-        // Unregister the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[4], web3.sha3("ERC777TokensRecipient"), 0, {
-            from: accounts[4]
-        });
-
-        // Send; should succeed as we have unregistered
-        await instance.send(accounts[4], granularity, "", {
-            from: accounts[0]
-        });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[4] = expectedBalances[4].add(granularity);
-        await confirmBalances();
-    });
-
-    it('obeys a registered ERC777TokensSender', async function() {
-        // Create the ERC777TokensSender
-        var senderInstance = await DenySpecifiedTokensSender.new({
-            from: accounts[0]
-        });
-
-        // Disallow sending to 2 from 0
-        await senderInstance.addDenial(accounts[2], {
-            from: accounts[0]
-        });
-
-        // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), senderInstance.address, {
-            from: accounts[0]
-        });
-
-        // Try sending to accounts[1]; should succeed
-        await instance.send(accounts[1], granularity, "", {
-            from: accounts[0]
-        });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[1] = expectedBalances[1].add(granularity);
-        await confirmBalances();
-
-        // Try sending to accounts[2]; should fail
-        try {
-            await instance.send(accounts[2], granularity, "", {
-                from: accounts[0]
-            });
-            // assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-
-        // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), 0, {
-            from: accounts[0]
-        });
-
         await confirmBalances();
     });
 
