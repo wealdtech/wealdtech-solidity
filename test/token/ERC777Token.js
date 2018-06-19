@@ -53,7 +53,7 @@ contract('ERC777Token', accounts => {
     });
 
     it('can mint tokens', async function() {
-        var tx = await instance.mint(accounts[1], granularity, "", {
+        await instance.mint(accounts[1], granularity, "", {
             from: accounts[0]
         });
         expectedBalances[1] = expectedBalances[1].add(granularity);
@@ -97,7 +97,7 @@ contract('ERC777Token', accounts => {
     });
 
     it('can burn tokens', async function() {
-        var tx = await instance.burn(granularity, "", {
+        await instance.burn(granularity, "", {
             from: accounts[1]
         });
         expectedBalances[1] = expectedBalances[1].sub(granularity);
@@ -129,7 +129,7 @@ contract('ERC777Token', accounts => {
     });
 
     it('can send tokens', async function() {
-        var tx = await instance.send(accounts[1], granularity, "", {
+        await instance.send(accounts[1], granularity, "", {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity);
@@ -191,7 +191,7 @@ contract('ERC777Token', accounts => {
         });
 
         // Try sending a high-enough value so the recipient will allow it
-        var tx = await instance.send(accounts[3], granularity.mul(1000), "", {
+        await instance.send(accounts[3], granularity.mul(1000), "", {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity.mul(1000));
@@ -282,7 +282,7 @@ contract('ERC777Token', accounts => {
         });
 
         // Try sending to accounts[1]; should succeed
-        var tx = await instance.send(accounts[1], granularity, "", {
+        await instance.send(accounts[1], granularity, "", {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity);
@@ -418,7 +418,7 @@ contract('ERC777Token', accounts => {
 
         // Ensure the new contract can carry out transfers
         await confirmBalances();
-        var tx = await instance.send(accounts[1], granularity, "", {
+        await instance.send(accounts[1], granularity, "", {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity);
