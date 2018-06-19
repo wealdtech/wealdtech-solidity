@@ -11,7 +11,7 @@ import './ERC777TokensSender.sol';
 
 /**
  * @title ERC777Token
- *        ERC777Token is an EIP-777 compliant token implementation with
+ *        ERC777Token is an ERC-777 compliant token implementation with
  *        significantly upgraded functionality including a separate token store,
  *        cheap bulk transfers, efficient dividends, and easy upgrading.
  *
