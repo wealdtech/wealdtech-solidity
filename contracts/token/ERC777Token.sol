@@ -92,7 +92,7 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param _name the name of the token (e.g. "My token")
      * @param _symbol the symbol of the token e.g. ("MYT")
      * @param _granularity the smallest indivisible unit of the tokens.  Any
-     *        attempts to operate with amounts that are not whole units of
+     *        attempts to operate with amounts that are not multiples of
      *        granularity will fail
      * @param _totalSupply the total supply of tokens
      * @param _store a pre-existing dividend token store (set to 0 if no
