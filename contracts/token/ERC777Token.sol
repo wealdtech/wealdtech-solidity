@@ -363,8 +363,11 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param operatorData arbitrary data provided by the operator
      */
     function _send(address from, address to, uint256 amount, bytes userData, address operator, bytes operatorData) internal {
+        // Ensure that the to address is initialised
+        require(to != 0);
+
         // Ensure that the amount is a multiple of granularity
-        require (amount % granularity == 0);
+        require(amount % granularity == 0);
 
         // Ensure that the operator is allowed to send
         require(operator == from || operators[from][operator]);
