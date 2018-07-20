@@ -38,8 +38,8 @@ contract DenyLowAmount is ERC777TokensRecipient, ERC820Implementer {
         emit MinimumAmountCleared(msg.sender, token);
     }
 
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes holderData, bytes operatorData) public {
-        (operator, holder, holderData, operatorData);
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+        (operator, holder, data, operatorData);
         require(amount > minimumAmounts[recipient][msg.sender]);
     }
 

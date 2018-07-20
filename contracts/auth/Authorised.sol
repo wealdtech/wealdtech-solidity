@@ -79,7 +79,12 @@ contract Authorised is Permissioned {
                 return false;
             }
         }
-        bool permitted = isPermitted(signer(_actionHash, _signature), PERM_AUTHORISER);
+        address signer = obtainSigner(_actionHash, _signature);
+        if (signer == 0) {
+            return false;
+        }
+
+        bool permitted = isPermitted(signer, PERM_AUTHORISER);
         if (!_reusable) {
             if (permitted) {
                 usedHashes[_actionHash] = true;
@@ -96,13 +101,18 @@ contract Authorised is Permissioned {
         if (usedHashes[_actionHash] == true) {
             return false;
         }
-        return isPermitted(signer(_actionHash, _signature), PERM_AUTHORISER);
+        address signer = obtainSigner(_actionHash, _signature);
+        if (signer == 0) {
+            return false;
+        }
+        return isPermitted(signer, PERM_AUTHORISER);
     }
 
     /**
-     * @dev Obtain the signer address from a signature
+     * @dev Obtain the signer address from a signature.
+     *      Note that it is possible for the signer to be returned as 0x00
      */
-    function signer(bytes32 _actionHash, bytes _signature) private pure returns (address) {
+    function obtainSigner(bytes32 _actionHash, bytes _signature) private pure returns (address) {
         bytes32 r;
         bytes32 s;
         uint8 v;

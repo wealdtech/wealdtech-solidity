@@ -54,8 +54,8 @@ contract EmitMessage is ERC777TokensSender, ERC820Implementer {
     /**
      * Emit a message if found
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes holderData, bytes operatorData) public {
-        (operator, amount, holderData, operatorData);
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+        (operator, amount, data, operatorData);
         string memory message = messages[holder][recipient];
         if (bytes(message).length > 0) {
             emit Message(holder, recipient, message);

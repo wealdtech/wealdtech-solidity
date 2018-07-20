@@ -39,8 +39,8 @@ contract AllowSpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
         emit TokenRemoved(msg.sender, token);
     }
 
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes holderData, bytes operatorData) public {
-        (operator, holder, amount, holderData, operatorData);
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+        (operator, holder, amount, data, operatorData);
         require(allowed[recipient][msg.sender]);
     }
 

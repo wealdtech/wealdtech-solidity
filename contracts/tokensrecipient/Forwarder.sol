@@ -51,8 +51,8 @@ contract Forwarder is ERC777TokensRecipient, ERC820Implementer {
     /**
      * tokensReceived forwards the token if a forwarder is set.
      */
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes holderData, bytes operatorData) public {
-        (operator, holder, holderData, operatorData);
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+        (operator, holder, data, operatorData);
         if (forwardingAddresses[recipient] != 0) {
             IERC777 tokenContract = IERC777(msg.sender);
             // Transfer the tokens - this throws if it fails

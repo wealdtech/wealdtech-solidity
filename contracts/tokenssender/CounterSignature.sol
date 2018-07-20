@@ -11,6 +11,9 @@ import 'eip820/contracts/ERC820Implementer.sol';
  *        An ERC777 tokens sender contract that requires a counter-signature
  *        from an approved address to allow a transfer to proceed.
  *
+ *        Note that the contract only allows one counter-signatory for each
+ *        holder.
+ *
  *        State of this contract: stable; development complete but the code is
  *        unaudited. and may contain bugs and/or security holes. Use at your own
  *        risk.
@@ -54,18 +57,27 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
         return counterSignatories[_holder];
     }
 
+    event NONCE(bytes32);
+    event COUNTERSIGNATORY(address);
     /**
-     * This expects the nonce in holderData and the counter-signature in operatorData
+     * This expects operatorData to contain the signature (65 bytes) followed by the nonce
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes holderData, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+        (data);
+
+        // Ensure that operatorData contains the correct number of bytes
+        require(operatorData.length == 97);
+
         bytes32 nonce;
         assembly {
-            nonce := mload(add(holderData, 32))
+            nonce := mload(add(operatorData, 97))
         }
+        emit NONCE(nonce);
         // Token, operator, holder, recipient, amount, nonce
-        bytes32 hash = hashForCounterSignature(operator, holder, recipient, amount, nonce);
+        bytes32 hash = hashForCounterSignature(operator, holder, recipient, amount, data, nonce);
 
-        require(signer(hash, operatorData) == counterSignatories[holder]);
+        address counterSignatory = signer(hash, operatorData);
+        require(counterSignatory != 0 && counterSignatory == counterSignatories[holder]);
     }
 
     function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public pure returns(bytes32) {
@@ -80,18 +92,14 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
     /**
      * This generates the hash for the counter-signature
      */
-    function hashForCounterSignature(address operator, address holder, address recipient, uint256 amount, bytes32 nonce) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), operator, holder, recipient, amount, nonce));
+    function hashForCounterSignature(address operator, address holder, address recipient, uint256 amount, bytes data, bytes32 nonce) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(address(this), operator, holder, recipient, amount, data, nonce));
     }
 
     function signer(bytes32 _hash, bytes _signature) private pure returns (address) {
         bytes32 r;
         bytes32 s;
         uint8 v;
-
-        if (_signature.length != 65) {
-            return 0;
-        }
 
         assembly {
             r := mload(add(_signature, 32))

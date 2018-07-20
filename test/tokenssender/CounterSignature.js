@@ -52,10 +52,11 @@ contract('CounterSignature', accounts => {
     });
 
     it('handles senders accordingly', async function() {
-        // Create the counter-signature
+        // Create the operator data, which is the counter-signature plus the nonce
         const nonce = sha3("testnonce1");
-        const hash = await instance.hashForCounterSignature(accounts[1], accounts[0], accounts[2], granularity.mul(5), nonce);
+        const hash = await instance.hashForCounterSignature(accounts[1], accounts[0], accounts[2], granularity.mul(5), "", nonce);
         const counterSignature = await web3.eth.sign(accounts[3], hash);
+        const operatorData = counterSignature + nonce.slice(2);
 
         // Register the sender
         await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), instance.address, {
@@ -64,7 +65,7 @@ contract('CounterSignature', accounts => {
 
         // Attempt to transfer tokens as accounts[1] from accounts[0] to accounts[2] - should fail
         try {
-            await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), nonce, counterSignature, {
+            await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), "", operatorData, {
                 from: accounts[1]
             });
             assert.fail();
@@ -78,9 +79,10 @@ contract('CounterSignature', accounts => {
         });
         assert.equal(await erc777Instance.isOperatorFor(accounts[1], accounts[0]), true);
 
-        // Attempt to transfer tokens as accounts[1] from accounts[0] to accounts[2] - should fail
+        // Attempt to transfer tokens as accounts[1] from accounts[0] to accounts[2] - should fail because accounts[3] has not been
+        // named as a countersignatory for accounts[0]
         try {
-            await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), nonce, counterSignature, {
+            await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), "", operatorData, {
                 from: accounts[1]
             });
             assert.fail();
@@ -95,7 +97,7 @@ contract('CounterSignature', accounts => {
         assert.equal(await instance.getCounterSignatory(accounts[0]), accounts[3]);
 
         // Transfer tokens as accounts[1] from accounts[0] to accounts[2]
-        await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), nonce, counterSignature, {
+        await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), "", operatorData, {
             from: accounts[1]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity.mul(5));
@@ -110,7 +112,7 @@ contract('CounterSignature', accounts => {
 
         // Attempt to transfer tokens as accounts[1] from accounts[0] to accounts[2] - should fail
         try {
-            await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), nonce, counterSignature, {
+            await erc777Instance.operatorSend(accounts[0], accounts[2], granularity.mul(5), "", operatorData, {
                 from: accounts[1]
             });
             assert.fail();

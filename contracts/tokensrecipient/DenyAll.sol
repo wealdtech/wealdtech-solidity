@@ -21,8 +21,8 @@ import 'eip820/contracts/ERC820Implementer.sol';
  *         development of these and future contracts
  */ 
 contract DenyAll is ERC777TokensRecipient, ERC820Implementer {
-    function tokensReceived(address operator, address from, address to, uint256 value, bytes userData, bytes operatorData) public {
-        (from, to, value, userData, operator, operatorData);
+    function tokensReceived(address operator, address from, address to, uint256 value, bytes data, bytes operatorData) public {
+        (from, to, value, data, operator, operatorData);
         revert();
     }
 
