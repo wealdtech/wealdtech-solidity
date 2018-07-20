@@ -28,8 +28,8 @@ interface ERC777TokensRecipient {
       * @param from is the address from which the tokens have been transferred
       * @param to is the address to which the tokens have been transferred
       * @param value is the value of tokens transferred
-      * @param userData is data supplied by the user for the transfer
+      * @param data is data supplied by the user for the transfer
       * @param operatorData is data supplied by the operator for the transfer
       */
-    function tokensReceived(address operator, address from, address to, uint256 value, bytes userData, bytes operatorData) public;
+    function tokensReceived(address operator, address from, address to, uint256 value, bytes data, bytes operatorData) public;
 }

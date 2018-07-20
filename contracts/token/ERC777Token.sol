@@ -126,9 +126,12 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
     }
 
     function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        // TODO
-        (addr, interfaceHash);
-        return keccak256("ERC820_ACCEPT_MAGIC");
+        (addr);
+        if (interfaceHash == keccak256("ERC777Token")) {
+            return keccak256("ERC820_ACCEPT_MAGIC");
+        } else {
+            return 0;
+        }
     }
 
     /**
@@ -167,22 +170,22 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * burn existing tokens.
      * @param amount the number of tokens to burn
      */
-    function burn(uint256 amount, bytes userData) public
+    function burn(uint256 amount, bytes data) public
         sync(msg.sender)
         ifInState(State.Active)
     {
-        _burn(msg.sender, msg.sender, amount, userData, "");
+        _burn(msg.sender, msg.sender, amount, data, "");
     }
 
     /**
      * burn existing tokens.
      * @param amount the number of tokens to burn
      */
-    function operatorBurn(address holder, uint256 amount, bytes userData, bytes operatorData) public
+    function operatorBurn(address holder, uint256 amount, bytes data, bytes operatorData) public
       sync(holder)
       ifInState(State.Active)
     {
-        _burn(msg.sender, holder, amount, userData, operatorData);
+        _burn(msg.sender, holder, amount, data, operatorData);
     }
 
     /**
@@ -190,10 +193,10 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param operator the address of the entity invoking the burn
      * @param holder the address from which the tokens are to be burned
      * @param amount the number of tokens to be burned
-     * @param userData arbitrary data provided by the holder
+     * @param data arbitrary data provided by the holder
      * @param operatorData arbitrary data provided by the operator
      */
-    function _burn(address operator, address holder, uint256 amount, bytes userData, bytes operatorData) internal {
+    function _burn(address operator, address holder, uint256 amount, bytes data, bytes operatorData) internal {
         // Ensure that the amount is a multiple of granularity
         require (amount % granularity == 0);
 
@@ -203,13 +206,13 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
         // Call remote sender if present
         address senderImplementation = interfaceAddr(holder, "ERC777TokensSender");
         if (senderImplementation != 0) {
-            ERC777TokensSender(senderImplementation).tokensToSend(operator, holder, 0, amount, userData, operatorData);
+            ERC777TokensSender(senderImplementation).tokensToSend(operator, holder, 0, amount, data, operatorData);
         }
 
         // Transfer
         store.burn(holder, amount);
 
-        emit Burned(operator, holder, amount, userData, operatorData);
+        emit Burned(operator, holder, amount, data, operatorData);
     }
 
     //
@@ -262,14 +265,14 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * send an amount of tokens to a given address.
      * @param to the address to which to send tokens
      * @param amount the number of tokens to send.  Must be a multiple of granularity
-     * @param userData arbitrary data provided by the sender
+     * @param data arbitrary data provided by the holder
      */
-    function send(address to, uint256 amount, bytes userData) public
+    function send(address to, uint256 amount, bytes data) public
       sync(msg.sender)
       sync(to)
       ifInState(State.Active)
     {
-        _send(msg.sender, to, amount, userData, msg.sender, "");
+        _send(msg.sender, to, amount, data, msg.sender, "");
     }
 
     /**
@@ -309,15 +312,15 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param from the address from which to send tokens
      * @param to the address to which to send tokens
      * @param amount the number of tokens to send.  Must be a multiple of granularity
-     * @param userData arbitrary data provided by the sender
+     * @param data arbitrary data provided by the holder
      * @param operatorData arbitrary data provided by the operator
      */
-    function operatorSend(address from, address to, uint256 amount, bytes userData, bytes operatorData) public
+    function operatorSend(address from, address to, uint256 amount, bytes data, bytes operatorData) public
       sync(from)
       sync(to)
       ifInState(State.Active)
     {
-        _send(from, to, amount, userData, msg.sender, operatorData);
+        _send(from, to, amount, data, msg.sender, operatorData);
     }
 
     //
@@ -358,11 +361,11 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param from the address from which the tokens are to be transferred
      * @param to the address to which the tokens are to be transferred
      * @param amount the number of tokens to be transferred
-     * @param userData arbitrary data provided by the sender
+     * @param data arbitrary data provided by the holder
      * @param operator the address of the entity invoking the transfer
      * @param operatorData arbitrary data provided by the operator
      */
-    function _send(address from, address to, uint256 amount, bytes userData, address operator, bytes operatorData) internal {
+    function _send(address from, address to, uint256 amount, bytes data, address operator, bytes operatorData) internal {
         // Ensure that the to address is initialised
         require(to != 0);
 
@@ -375,7 +378,7 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
         // Call remote sender if present
         address senderImplementation = interfaceAddr(from, "ERC777TokensSender");
         if (senderImplementation != 0) {
-            ERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, userData, operatorData);
+            ERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, data, operatorData);
         }
 
         // Transfer
@@ -390,10 +393,10 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
                 revert();
             }
         } else {
-            ERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, userData, operatorData);
+            ERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, data, operatorData);
         }
 
-        emit Sent(operator, from, to, amount, userData, operatorData);
+        emit Sent(operator, from, to, amount, data, operatorData);
     }
 
     /**

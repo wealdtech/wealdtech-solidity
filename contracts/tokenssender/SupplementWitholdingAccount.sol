@@ -65,7 +65,7 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
         emit SupplementRemoved(msg.sender);
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes holderData, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
         (operator);
 
         require(accounts[holder] != 0);
@@ -84,7 +84,7 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
             supplement = (supplement.div(granularity)+1).mul(granularity);
         }
         // Transfer the tokens - this throws if it fails
-        tokenContract.operatorSend(holder, accounts[holder], supplement, holderData, operatorData);
+        tokenContract.operatorSend(holder, accounts[holder], supplement, data, operatorData);
     }
 
     function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {

@@ -46,8 +46,8 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
         return allowances[_holder][_operator][_token];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes holderData, bytes operatorData) public {
-        (recipient, holderData, operatorData);
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+        (recipient, data, operatorData);
 
         if (operator == holder) {
             // This is a user send not an operator send; ignore

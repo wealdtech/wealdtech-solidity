@@ -48,8 +48,8 @@ contract DenySpecifiedRecipients is ERC777TokensSender, ERC820Implementer {
         return recipients[_holder][_recipient];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes holderData, bytes operatorData) public {
-        (operator, value, holderData, operatorData);
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
+        (operator, value, data, operatorData);
         require(!recipients[holder][recipient]);
     }
 
