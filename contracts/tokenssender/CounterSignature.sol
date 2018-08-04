@@ -57,10 +57,8 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
         return counterSignatories[_holder];
     }
 
-    event NONCE(bytes32);
-    event COUNTERSIGNATORY(address);
     /**
-     * This expects operatorData to contain the signature (65 bytes) followed by the nonce
+     * This expects operatorData to contain the signature (65 bytes) followed by the nonce (32 bytes)
      */
     function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
         (data);
@@ -72,7 +70,6 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
         assembly {
             nonce := mload(add(operatorData, 97))
         }
-        emit NONCE(nonce);
         // Token, operator, holder, recipient, amount, nonce
         bytes32 hash = hashForCounterSignature(operator, holder, recipient, amount, data, nonce);
 
