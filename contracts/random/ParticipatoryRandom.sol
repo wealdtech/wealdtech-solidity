@@ -86,7 +86,7 @@ contract ParticipatoryRandom {
         require(rounds[_instanceId] != 0);
         bytes32 source = _seed;
         for (uint256 i = 0; i <= rounds[_instanceId]; i++) {
-            source = keccak256(source);
+            source = keccak256(abi.encodePacked(source));
         }
         return source;
     }
@@ -115,7 +115,7 @@ contract ParticipatoryRandom {
         require(_round <= rounds[_instanceId]);
         bytes32 value = _seed;
         for (uint256 i = 0; i <= (rounds[_instanceId]-_round); i++) {
-            value = keccak256(value);
+            value = keccak256(abi.encodePacked(value));
         }
         return value;
     }
@@ -135,7 +135,7 @@ contract ParticipatoryRandom {
         require(_round <= rounds[_instanceId]);
         bytes32 value = _value;
         for (uint256 i = _round; i > 0; i--) {
-            value = keccak256(value);
+            value = keccak256(abi.encodePacked(value));
         }
         return (value == sources[_instanceId][_party]);
     }

@@ -165,7 +165,7 @@ contract MockEnsRegistrar {
     function _tryEraseSingleNode(bytes32 label) internal {
         if (ens.owner(rootNode) == address(this)) {
             ens.setSubnodeOwner(rootNode, label, address(this));
-            bytes32 node = keccak256(rootNode, label);
+            bytes32 node = keccak256(abi.encodePacked(rootNode, label));
             ens.setResolver(node, 0);
             ens.setOwner(node, 0);
         }
