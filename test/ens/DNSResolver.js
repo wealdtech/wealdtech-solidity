@@ -26,8 +26,8 @@ contract('DNSResolver', (accounts) => {
 
     it('should set up the contracts', async() => {
         registry = await ENS.new({ from: registryOwner });
-        registrar = await MockEnsRegistrar.new(registry.address, ethNameHash, { from: registrarOwner, value: web3.toWei(10, 'ether') });
-        await registry.setSubnodeOwner("0x0", ethLabelHash, registrar.address, { from: registryOwner });
+        registrar = await MockEnsRegistrar.new(registry.address, ethNameHash, { from: registrarOwner, value: web3.utils.toWei('10', 'ether') });
+        await registry.setSubnodeOwner('0x00', ethLabelHash, registrar.address, { from: registryOwner });
         resolver = await DNSResolver.new(registry.address, { from: resolverOwner })
     });
 
@@ -85,7 +85,7 @@ contract('DNSResolver', (accounts) => {
 
         await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
 
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), '0x');
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), null);
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840');
     })
 
@@ -121,6 +121,49 @@ contract('DNSResolver', (accounts) => {
         // Removal returns to 0
         hasEntries = await resolver.hasDNSRecords(testDomainNameHash, sha3(dnsName('c.test1.eth.')), { from: testDomainOwner });
         assert.equal(hasEntries, false);
+    })
+
+    it('can clear a zone', async() => {
+        const testDomain = 'test2';
+        const testDomainLabelHash = sha3(testDomain);
+        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
+
+        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
+
+        // a.test2.eth. 3600 IN A 1.2.3.4
+        const crec = '016105746573743203657468000001000100000e10000401020304';
+        const rec = '0x' + crec;
+
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
+
+        // Ensure the record is present
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test2.eth.')), 1), '0x016105746573743203657468000001000100000e10000401020304');
+
+        // Clear the zone
+        await resolver.clearDNSZone(testDomainNameHash, { from: testDomainOwner });
+
+        // Ensure the record is no longer present
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test2.eth.')), 1), null);
+
+        // Ensure the record can be set again
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test2.eth.')), 1), '0x016105746573743203657468000001000100000e10000401020304');
+    })
+
+    it('should handle single-record updates', async() => {
+        const testDomain = 'test3';
+        const testDomainLabelHash = sha3(testDomain);
+        const testDomainNameHash = sha3(ethNameHash, testDomainLabelHash);
+
+        await registrar.register(testDomainLabelHash, { from: testDomainOwner });
+
+        // a.test3.eth. 3600 IN A 1.2.3.4
+        const arec = '016105746573743303657468000001000100000e10000401020304';
+        const rec = '0x' + arec;
+
+        await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
+
+        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('a.test3.eth.')), 1), '0x016105746573743303657468000001000100000e10000401020304');
     })
 });
 

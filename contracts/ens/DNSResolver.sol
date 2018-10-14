@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017,2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -25,7 +25,9 @@ import './AbstractENS.sol';
  *
  *        Definitions used within this contract are as follows:
  *          - node is the namehash of the ENS domain e.g. namehash('myzone.eth')
- *          - name is the keccak-256 hash of the fully-qualified name of the node e.g. keccak256('www.myzone.eth.') (note the trailing period)
+ *          - name is the keccak-256 hash of the DNS wire-format fully-qualified name of the node, for example if the
+ *            fully-qualified name is 'www.myzone.eth' then the DNS wire format is '\03www\06myzone\03eth\00' and name is
+ *            keccak256('\03www\06myzone\03eth\00')
  *          - resource is the numeric ID of the record from https://en.wikipedia.org/wiki/List_of_DNS_record_types
  *          - data is DNS wire format data for the record
  *
@@ -33,55 +35,78 @@ import './AbstractENS.sol';
  *        to change.  Do not use.
  *
  * @author Jim McDonald
- * @notice If you use this contract please consider donating some Ether or
- *         some of your ERC-20 token to wsl.wealdtech.eth to support continued
- *         development of these and future contracts
+ * @notice If you use this contract please consider donating to
+ *         wsl.wealdtech.eth to support continued development of these and
+ *         future contracts
  */
 contract DNSResolver is PublicResolver {
     using RRUtils for *;
     using BytesUtils for bytes;
 
-    // Complete zones
-    mapping(bytes32=>bytes) public zones;
+    // Version the mapping for each zone.  This allows users who have lost track of their entries to effectively delete an entire
+    // zone by bumping the version number.
+    // node => version
+    mapping(bytes32=>uint16) public versions;
 
-    // node => name => resource => data
-    mapping(bytes32=>mapping(bytes32=>mapping(uint16=>bytes))) public records;
+    // The records themselves.  Stored as RRSETs
+    // node => name => version => resource => data
+    mapping(bytes32=>mapping(uint16=>mapping(bytes32=>mapping(uint16=>bytes)))) public records;
 
-    // Count of number of entries for a given name.  Required for DNS resolvers
-    // when resolving wildcards
-    // node => name => number of records
-    mapping(bytes32=>mapping(bytes32=>uint16)) public nameEntriesCount;
+    // Count of number of entries for a given name.  Required for DNS resolvers when resolving wildcards.
+    // node => name => version => number of records
+    mapping(bytes32=>mapping(uint16=>mapping(bytes32=>uint16))) public nameEntriesCount;
 
-    // The ENS registry
+    // The ENS registry.
     AbstractENS registry;
 
-    // Restrict operations to the owner of the relevant ENS node
+    // Restrict operations to the owner of the relevant ENS node.
     modifier onlyNodeOwner(bytes32 node) {
         require(msg.sender == registry.owner(node));
         _;
     }
 
-    // DNSResolver requires the ENS registry to confirm ownership of nodes
+    // DNSResolver requires the ENS registry to confirm ownership of nodes.
     constructor(AbstractENS _registry) public PublicResolver(_registry) {
+        require(address(_registry) != 0);
         registry = _registry;
     }
 
     // 0xa8fa5682 == bytes4(keccak256("dnsRecord(bytes32,bytes32,uint16)"))
-    // 0xdbfc5d00 == bytes4(keccak256("dnsZone(bytes32)"))
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
-        return interfaceId == 0xa8fa5682 || interfaceId == 0xdbfc5d00 || super.supportsInterface(interfaceId);
+        return interfaceId == 0xa8fa5682 || super.supportsInterface(interfaceId);
     }
     
-    event Updated(bytes32 node, bytes name, uint16 resource, uint256 length);
+    // Updated is emitted whenever a given node/name/resource's RRSET is updated.
+    event Updated(bytes32 node, bytes name, uint16 resource);
+    // Deleted is emitted whenever a given node/name/resource's RRSET is deleted.
     event Deleted(bytes32 node, bytes name, uint16 resource);
-    function setDNSRecords(bytes32 node, bytes data) public onlyNodeOwner(node) {
+    // Cleared is emitted whenever a given node's zone information is cleared.
+    event Cleared(bytes32 node);
+
+    /**
+     * Set one or more DNS records.  Records are supplied in wire-format.  Records with the same node/name/resource must be
+     * supplied one after the other to ensure the data is updated correctly. For example, if the data was supplied:
+     *     a.example.com IN A 1.2.3.4
+     *     a.example.com IN A 5.6.7.8
+     *     www.example.com IN CNAME a.example.com.
+     * then this would store the two A records for a.example.com correctly as a single RRSET, however if the data was supplied:
+     *     a.example.com IN A 1.2.3.4
+     *     www.example.com IN CNAME a.example.com.
+     *     a.example.com IN A 5.6.7.8
+     * then this would store the first A record, the CNAME, then the second A record which would overwrite the first.
+     *
+     * @param _node the namehash of the node for which to set the records
+     * @param _data the DNS wire format records to set
+     */
+    function setDNSRecords(bytes32 _node, bytes _data) public onlyNodeOwner(_node) {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
         bytes memory value;
         bytes32 nameHash;
+        uint16 version = versions[_node];
         // Iterate over the data to add the resource records
-        for(RRUtils.RRIterator memory iter = data.iterateRRs(0); !iter.done(); iter.next()) {
+        for(RRUtils.RRIterator memory iter = _data.iterateRRs(0); !iter.done(); iter.next()) {
             if (resource == 0) {
                 resource = iter.dnstype;
                 name = bytes(iter.name());
@@ -90,19 +115,19 @@ contract DNSResolver is PublicResolver {
             } else {
                 bytes memory newName = bytes(iter.name());
                 if (resource != iter.dnstype || !name.equals(newName)) {
-                    bytes memory rrData = data.substring(offset, iter.offset - offset);
+                    bytes memory rrData = _data.substring(offset, iter.offset - offset);
                     if (value.length == 0) {
-                        if (records[node][nameHash][resource].length != 0) {
-                            nameEntriesCount[node][nameHash]--;
+                        if (records[_node][version][nameHash][resource].length != 0) {
+                            nameEntriesCount[_node][version][nameHash]--;
                         }
-                        delete(records[node][nameHash][resource]);
-                        emit Deleted(node, name, resource);
+                        delete(records[_node][version][nameHash][resource]);
+                        emit Deleted(_node, name, resource);
                     } else {
-                        if (records[node][nameHash][resource].length == 0) {
-                            nameEntriesCount[node][nameHash]++;
+                        if (records[_node][version][nameHash][resource].length == 0) {
+                            nameEntriesCount[_node][version][nameHash]++;
                         }
-                        records[node][nameHash][resource] = rrData;
-                        emit Updated(node, name, resource, rrData.length);
+                        records[_node][version][nameHash][resource] = rrData;
+                        emit Updated(_node, name, resource);
                     }
                     resource = iter.dnstype;
                     offset = iter.offset;
@@ -112,64 +137,48 @@ contract DNSResolver is PublicResolver {
                 }
             }
         }
-        rrData = data.substring(offset, data.length - offset);
+        rrData = _data.substring(offset, _data.length - offset);
         if (value.length == 0) {
-            if (records[node][nameHash][resource].length != 0) {
-                nameEntriesCount[node][nameHash]--;
+            if (records[_node][version][nameHash][resource].length != 0) {
+                nameEntriesCount[_node][version][nameHash]--;
             }
-            delete(records[node][nameHash][resource]);
-            emit Deleted(node, name, resource);
+            delete(records[_node][version][nameHash][resource]);
+            emit Deleted(_node, name, resource);
         } else {
-            if (records[node][nameHash][resource].length == 0) {
-                nameEntriesCount[node][nameHash]++;
+            if (records[_node][version][nameHash][resource].length == 0) {
+                nameEntriesCount[_node][version][nameHash]++;
             }
-            records[node][nameHash][resource] = rrData;
-            emit Updated(node, name, resource, rrData.length);
+            records[_node][version][nameHash][resource] = rrData;
+            emit Updated(_node, name, resource);
         }
     }
 
     /**
      * Obtain a DNS record.
-     * @param node the namehash of the node for which to fetch the record
-     * @param name the keccak-256 hash of the fully-qualified name for which to fetch the record
-     * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
+     * @param _node the namehash of the node for which to fetch the record
+     * @param _name the keccak-256 hash of the fully-qualified name for which to fetch the record
+     * @param _resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
      * @return the DNS record in wire format if present, otherwise empty
      */
-    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes data) {
-        return records[node][name][resource];
+    function dnsRecord(bytes32 _node, bytes32 _name, uint16 _resource) public view returns (bytes) {
+        return records[_node][versions[_node]][_name][_resource];
     }
 
     /**
-     * Set the values for a DNS zone.
-     * @param node the namehash of the node for which to store the zone
-     * @param data the DNS zone in wire format
+     * Check if a given node has records.
+     * @param _node the namehash of the node for which to check the records
+     * @param _name the namehash of the node for which to check the records
      */
-    function setDNSZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
-        zones[node] = data;
+    function hasDNSRecords(bytes32 _node, bytes32 _name) public view returns (bool) {
+        return (nameEntriesCount[_node][versions[_node]][_name] != 0);
     }
 
     /**
-     * Obtain a DNS zone.
-     * @param node the namehash of the node for which to fetch the zone
-     * @return the DNS zone in wire format if present, otherwise empty
-     */
-    function dnsZone(bytes32 node) public view returns (bytes data) {
-        return zones[node];
-    }
-
-    /**
-     * Clear the values for a DNS zone.
+     * Clear all information for a DNS zone.
      * @param _node the namehash of the node for which to clear the zone
      */
     function clearDNSZone(bytes32 _node) public onlyNodeOwner(_node) {
-        delete(zones[_node]);
-    }
-
-    /**
-     * Check if a given node has records
-     * @param _node the namehash of the node for which to check the records
-     */
-    function hasDNSRecords(bytes32 _node, bytes32 x) public view returns (bool) {
-        return (nameEntriesCount[_node][x] != 0);
+        versions[_node]++;
+        emit Cleared(_node);
     }
 }
