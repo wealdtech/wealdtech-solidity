@@ -1,8 +1,8 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../token/ERC777TokensRecipient.sol';
 import '../token/IERC777.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -34,6 +34,10 @@ contract Forwarder is ERC777TokensRecipient, ERC820Implementer {
     // An event emitted when a forwarding address is cleared
     event ForwardingAddressCleared(address recipient);
 
+    constructor() public {
+        implementInterface("ERC777TokensRecipient");
+    }
+
     function setForwarder(address target) public {
         forwardingAddresses[msg.sender] = target;
         emit ForwardingAddressSet(msg.sender, target);
@@ -57,15 +61,6 @@ contract Forwarder is ERC777TokensRecipient, ERC820Implementer {
             IERC777 tokenContract = IERC777(msg.sender);
             // Transfer the tokens - this throws if it fails
             tokenContract.operatorSend(recipient, forwardingAddresses[recipient], amount, "", "");
-        }
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensRecipient")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
         }
     }
 }

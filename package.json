@@ -1,14 +1,14 @@
 {
   "name": "wealdtech-solidity",
   "description": "Solidity contracts provided by Wealdtech",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "devDependencies": {
     "mocha": "*",
     "solidity-sha3": "^0.4.1"
   },
   "dependencies": {
-    "eip820": "0.0.20",
     "ens": "0.0.1",
+    "erc820": "^0.0.22",
     "truffle": "^4.1.11",
     "zeppelin-solidity": "^1.2.0"
   }

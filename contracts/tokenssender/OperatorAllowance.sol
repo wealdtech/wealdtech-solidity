@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -30,11 +30,15 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
     // An event emitted when an allowance is set
     event AllowanceSet(address holder, address operator, address token, uint256 allowance);
 
+    constructor() public {
+        implementInterface("ERC777TokensSender");
+    }
+
     /**
      * setAllowance sets an allowance.
      */
     function setAllowance(address _operator, address _token, uint256 _currentAllowance, uint256 _newAllowance) public {
-        require(allowances[msg.sender][_operator][_token] == _currentAllowance);
+        require(allowances[msg.sender][_operator][_token] == _currentAllowance, "current allowance incorrect");
         allowances[msg.sender][_operator][_token] = _newAllowance;
         emit AllowanceSet(msg.sender, _operator, _token, _newAllowance);
     }
@@ -46,7 +50,7 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
         return allowances[_holder][_operator][_token];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
         (recipient, data, operatorData);
 
         if (operator == holder) {
@@ -56,14 +60,5 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
 
         require (allowances[holder][operator][msg.sender] >= amount);
         allowances[holder][operator][msg.sender] = allowances[holder][operator][msg.sender].sub(amount);
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensSender")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }   
     }
 }

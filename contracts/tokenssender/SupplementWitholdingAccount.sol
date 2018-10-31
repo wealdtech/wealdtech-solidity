@@ -3,7 +3,7 @@ pragma solidity ^0.4.18;
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
 import '../token/IERC777.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -43,6 +43,10 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
     // An event emitted when a supplement is removed
     event SupplementRemoved(address holder);
 
+    constructor() public {
+        implementInterface("ERC777TokensSender");
+    }
+
     /**
      * setSuplement sets an account and percentage to which to send tokens
      * @param _target the address to which to send tokens
@@ -50,7 +54,7 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
      *        in 1/10000s of a percentage
      */
     function setSupplement(address _target, uint16 _percentage) public {
-        require(_target != 0);
+        require(_target != 0, "target address cannot be 0");
         accounts[msg.sender] = _target;
         percentages[msg.sender] = _percentage;
         emit SupplementSet(msg.sender, _target, _percentage);
@@ -65,10 +69,10 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
         emit SupplementRemoved(msg.sender);
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public payable {
         (operator);
 
-        require(accounts[holder] != 0);
+        require(accounts[holder] != 0, "target address not set");
 
         // Ignore tokens already being sent to the target account
         if (recipient == accounts[holder]) {
@@ -85,14 +89,5 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
         }
         // Transfer the tokens - this throws if it fails
         tokenContract.operatorSend(holder, accounts[holder], supplement, data, operatorData);
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensSender")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }   
     }
 }

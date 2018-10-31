@@ -3,10 +3,12 @@
 const assertRevert = require('../helpers/assertRevert.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
-const AllowSpecifiedRecipients = artifacts.require('AllowSpecifiedRecipients');
+const Payed = artifacts.require('Payed');
 const ERC820Registry = artifacts.require('ERC820Registry');
 
-contract('AllowSpecifiedRecipients', accounts => {
+const sha3 = require('solidity-sha3').default;
+
+contract('Payed', accounts => {
     var erc777Instance;
     var erc820Instance;
     var instance;
@@ -52,70 +54,84 @@ contract('AllowSpecifiedRecipients', accounts => {
     });
 
     it('creates the sender contract', async function() {
-        instance = await AllowSpecifiedRecipients.new({
+        instance = await Payed.new({
             from: accounts[0]
         });
+        await instance.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+			from: accounts[1]
+		});
     });
 
-    it('handles recipients accordingly', async function() {
+    it('sets up the operator', async function() {
         // Register the sender
         await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), instance.address, {
             from: accounts[1]
         });
 
-        // Attempt to tranfer tokens to accounts[2] - should fail
-        try {
-            await erc777Instance.send(accounts[2], granularity.mul(5), "", {
-                from: accounts[1]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-
-        // Set up a recipient for accounts[2]
-        await instance.setRecipient(accounts[2], {
+        // Set up everyone as an operator for accounts[2]
+        await erc777Instance.authorizeOperator('0xffffffffffffffffffffffffffffffffffffffff', {
             from: accounts[1]
         });
-        assert.equal(await instance.getRecipient(accounts[1], accounts[2]), true);
+        assert.equal(await erc777Instance.isOperatorFor(accounts[2], accounts[1]), true);
+    });
 
-        // Transfer tokens to accounts[2]
-        await erc777Instance.send(accounts[2], granularity.mul(5), "", {
-            from: accounts[1]
+    it('transfers when paid', async function() {
+        const accounts1OldBalance = await web3.eth.getBalance(accounts[1]);
+
+        // Transfer tokens as accounts[2] from accounts[1] to accounts[3]
+        const tokens = granularity.mul(5);
+        // value is 1 wei per token
+        const value = web3.toWei(tokens.toString(), 'wei');
+        await erc777Instance.operatorSend(accounts[1], accounts[3], tokens, "", "", {
+            from: accounts[2],
+            value: value
         });
-        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(5));
-        expectedBalances[2] = expectedBalances[2].add(granularity.mul(5));
+        expectedBalances[1] = expectedBalances[1].sub(tokens);
+        expectedBalances[3] = expectedBalances[3].add(tokens);
         await confirmBalances();
-        
-        // Attempt to tranfer tokens to accounts[3] - should fail
+
+        const accounts1NewBalance = await web3.eth.getBalance(accounts[1]);
+        const accounts1ExpectedBalance = accounts1OldBalance.plus(value);
+        assert.equal(accounts1NewBalance.toString(), accounts1ExpectedBalance.toString());
+    });
+
+    it('does not transfer when not paid', async function() {
+        // Transfer tokens as accounts[1] from accounts[1] to accounts[3]
+        const tokens = granularity.mul(5);
+        // value is not enough...
+        const value = web3.toWei(1, 'wei');
         try {
-            await erc777Instance.send(accounts[3], granularity.mul(5), "", {
-                from: accounts[1]
+            await erc777Instance.operatorSend(accounts[1], accounts[3], tokens, "", "", {
+                from: accounts[2],
+                value: value
             });
             assert.fail();
         } catch (error) {
             assertRevert(error);
         }
+    });
 
-        // Clear recipient for accounts[2]
-        await instance.clearRecipient(accounts[2], {
+    it('de-registers', async function() {
+        await erc777Instance.revokeOperator('0xffffffffffffffffffffffffffffffffffffffff', {
             from: accounts[1]
         });
-        assert.equal(await instance.getRecipient(accounts[1], accounts[2]), false);
+        assert.equal(await erc777Instance.isOperatorFor(accounts[2], accounts[1]), false);
+    });
 
-        // Attempt to tranfer tokens to accounts[2] - should fail
+    it('does not work when de-registered', async function() {
+        // Transfer tokens as accounts[2] from accounts[1] to accounts[3]
+        const tokens = granularity.mul(5);
+        // value is 1 wei per token
+        const value = web3.toWei(tokens.toString(), 'wei');
+
         try {
-            await erc777Instance.send(accounts[2], granularity.mul(5), "", {
-                from: accounts[1]
+            await erc777Instance.operatorSend(accounts[1], accounts[3], tokens, "", "", {
+                from: accounts[2],
+                value: value
             });
             assert.fail();
         } catch (error) {
             assertRevert(error);
         }
-
-        // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), 0, {
-            from: accounts[1]
-        });
     });
 });

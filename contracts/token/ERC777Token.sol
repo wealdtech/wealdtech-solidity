@@ -1,10 +1,11 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
-import 'eip820/contracts/ERC820Implementer.sol';
+import 'erc820/contracts/ERC820Client.sol';
+import 'erc820/contracts/ERC820ImplementerInterface.sol';
 import './IERC777.sol';
 import '../lifecycle/Managed.sol';
 import '../math/SafeMath.sol';
-import './DividendTokenStore.sol';
+import './SimpleTokenStore.sol';
 import './ERC777TokensRecipient.sol';
 import './ERC777TokensSender.sol';
 
@@ -13,7 +14,7 @@ import './ERC777TokensSender.sol';
  * @title ERC777Token
  *        ERC777Token is an ERC-777 compliant token implementation with
  *        significantly upgraded functionality including a separate token store,
- *        cheap bulk transfers, efficient dividends, and easy upgrading.
+ *        bulk sends, and easy upgrading.
  *
  *        ERC777 tokens have the same base divisibility, with every token
  *        broken in to 10^18 divisions.  That is, every token can be subdivided
@@ -40,9 +41,6 @@ import './ERC777TokensSender.sol';
  *        be carried out in a gas-efficient manner, often halving the gas cost
  *        for large bulk transfers.
  *
- *        The underlying token store supports efficient token-based dividends;
- *        see DividendTokenStore for more information about how dividends work.
- *
  *        State of this contract: stable; development complete but the code is
  *        unaudited. and may contain bugs and/or security holes. Use at your own
  *        risk.
@@ -52,7 +50,7 @@ import './ERC777TokensSender.sol';
  *         some of your EIP-777 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract ERC777Token is IERC777, ERC820Implementer, Managed {
+contract ERC777Token is IERC777, ERC820Client, ERC820ImplementerInterface, Managed {
     using SafeMath for uint256;
 
     // Definition for the token
@@ -60,15 +58,10 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
     string public symbol;
     uint256 public granularity;
     // The store for this token's allocations
-    DividendTokenStore public store;
+    SimpleTokenStore public store;
 
     // The operator information for this token
     mapping(address=>mapping(address=>bool)) private operators;
-    // TODO
-    mapping(address=>address[]) private operatorsList;
-
-    // The mask for the address as part of a uint256 for bulkTransfer()
-    uint256 private constant ADDRESS_MASK = 0x00ffffffffffffffffffffffffffffffffffffffff;
 
     // Permissions for this contract
     bytes32 internal constant PERM_MINT = keccak256("token: mint");
@@ -76,13 +69,9 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
     bytes32 internal constant PERM_ISSUE_DIVIDEND = keccak256("token: issue dividend");
     bytes32 internal constant PERM_UPGRADE = keccak256("token: upgrade");
 
-    // This modifier syncs the data of the given account.  It *must* be
-    // attached to every function that interacts with balances for *all*
-    // participants in the function.
-    modifier sync(address _account) {
-        store.sync(_account);
-        _;
-    }
+    // OPERATOR_ANY allows anyone to carry out an operatorSend() against an address.
+    // It is used when the token control contract handles authority
+    address internal constant OPERATOR_ANY = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;
 
     /**
      * Constructor creates the token with the required parameters.  If
@@ -94,11 +83,11 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param _granularity the smallest indivisible unit of the tokens.  Any
      *        attempts to operate with amounts that are not multiples of
      *        granularity will fail
-     * @param _totalSupply the total supply of tokens
+     * @param _initialSupply the initial supply of tokens
      * @param _store a pre-existing dividend token store (set to 0 if no
      *        pre-existing token store)
      */
-    constructor(uint256 _version, string _name, string _symbol, uint256 _granularity, uint256 _totalSupply, address _store)
+    constructor(uint256 _version, string _name, string _symbol, uint256 _granularity, uint256 _initialSupply, address _store)
       Managed(_version)
       public
     {
@@ -106,29 +95,26 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
         symbol = _symbol;
         granularity = _granularity;
 
-        require(_granularity > 0);
+        require(_granularity > 0, "granularity must be greater than 0");
         if (_store == 0) {
-            store = new DividendTokenStore();
-            if (_totalSupply > 0) {
-                // Total supply should be at least 1 token
-                require(_totalSupply > 10**18);
+            store = new SimpleTokenStore();
+            if (_initialSupply > 0) {
+                require(_initialSupply % _granularity == 0, "initial supply must be a multiple of granularity");
 
-                // Sanity checks
-                require(_totalSupply % _granularity == 0);
-
-                _mint(msg.sender, msg.sender, _totalSupply, "");
+                _mint(msg.sender, msg.sender, _initialSupply, "");
             }
         } else {
-            store = DividendTokenStore(_store);
+            store = SimpleTokenStore(_store);
         }
 
-        setInterfaceImplementation("erc777-Token", this);
+        setInterfaceImplementation("ERC777Token", address(this));
     }
 
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777Token")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
+    function canImplementInterfaceForAddress(bytes32 interfaceHash, address addr) view public returns(bytes32) {
+        // keccak256("ERC777Token") == 0xac7fbab5f54a3ca8194167523c6753bfeb96a445279294b6125b68cce2177054
+        if (interfaceHash == 0xac7fbab5f54a3ca8194167523c6753bfeb96a445279294b6125b68cce2177054 && addr == address(this)) {
+           // keccak256(abi.encodePacked("ERC820_ACCEPT_MAGIC") == ?
+            return keccak256(abi.encodePacked("ERC820_ACCEPT_MAGIC"));
         } else {
             return 0;
         }
@@ -149,7 +135,6 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @notice requires the PERM_MINT permission
      */
     function mint(address to, uint256 amount, bytes operatorData) public
-        sync(to)
         ifPermitted(msg.sender, PERM_MINT)
         ifInState(State.Active)
     {
@@ -171,7 +156,6 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param amount the number of tokens to burn
      */
     function burn(uint256 amount, bytes data) public
-        sync(msg.sender)
         ifInState(State.Active)
     {
         _burn(msg.sender, msg.sender, amount, data, "");
@@ -181,8 +165,7 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * burn existing tokens.
      * @param amount the number of tokens to burn
      */
-    function operatorBurn(address holder, uint256 amount, bytes data, bytes operatorData) public
-      sync(holder)
+    function operatorBurn(address holder, uint256 amount, bytes data, bytes operatorData) public payable
       ifInState(State.Active)
     {
         _burn(msg.sender, holder, amount, data, operatorData);
@@ -198,15 +181,15 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      */
     function _burn(address operator, address holder, uint256 amount, bytes data, bytes operatorData) internal {
         // Ensure that the amount is a multiple of granularity
-        require (amount % granularity == 0);
+        require(amount % granularity == 0, "amount must be a multiple of granularity");
 
         // Ensure that the operator is allowed to burn
-        require(operator == holder || operators[holder][operator]);
+        require(operator == holder || isOperatorFor(operator, holder), "not allowed to burn");
 
-        // Call remote sender if present
+        // Call token control contract if present
         address senderImplementation = interfaceAddr(holder, "ERC777TokensSender");
         if (senderImplementation != 0) {
-            ERC777TokensSender(senderImplementation).tokensToSend(operator, holder, 0, amount, data, operatorData);
+            ERC777TokensSender(senderImplementation).tokensToSend.value(msg.value)(operator, holder, 0, amount, data, operatorData);
         }
 
         // Transfer
@@ -268,11 +251,23 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param data arbitrary data provided by the holder
      */
     function send(address to, uint256 amount, bytes data) public
-      sync(msg.sender)
-      sync(to)
       ifInState(State.Active)
     {
         _send(msg.sender, to, amount, data, msg.sender, "");
+    }
+
+    /**
+     * send multiple amounts of tokens to given addresses.
+     * @param to the addresses to which to send tokens
+     * @param amount the numbers of tokens to send.  Must be a multiple of granularity
+     * @param data arbitrary data provided by the holder
+     */
+    function bulkSend(address[] to, uint256[] amount, bytes data) public
+      ifInState(State.Active)
+    {
+        for (uint256 i = 0; i < to.length; i++) {
+            send(to[i], amount[i], data);
+        }
     }
 
     /**
@@ -280,7 +275,7 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param operator the address of the third party
      */
     function authorizeOperator(address operator) public {
-        require(operator != msg.sender);
+        require(operator != msg.sender, "not allowed to set yourself as an operator");
         operators[msg.sender][operator] = true;
         emit AuthorizedOperator(operator, msg.sender);
     }
@@ -291,36 +286,52 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      * @param operator the address of the third party
      */
     function revokeOperator(address operator) public {
-        require(operator != msg.sender);
+        // TODO do we need this require?
+        require(operator != msg.sender, "not allowed to remove yourself as an operator");
         delete operators[msg.sender][operator];
         emit RevokedOperator(operator, msg.sender);
     }
 
     /**
-     * @dev obtain if an address is an operator for a token holder
+     * @dev obtain if an address is an operator for a token holder, either explicitly or because
+     *      everyone is authorised as an operator for the token holder
      * @param operator the address of the third party
      * @param tokenHolder the address of the holder of the tokens
      * @return true if the operator is authorized for the given token holder,
      *         otherwise false.
      */
     function isOperatorFor(address operator, address tokenHolder) public view returns (bool) {
-        return operators[tokenHolder][operator];
+        return operators[tokenHolder][operator] || operators[tokenHolder][OPERATOR_ANY];
     }
 
     /**
-     * carry out a third-party transfer of tokens
+     * send an amount of tokens to a given address on behalf of another address.
      * @param from the address from which to send tokens
      * @param to the address to which to send tokens
      * @param amount the number of tokens to send.  Must be a multiple of granularity
      * @param data arbitrary data provided by the holder
      * @param operatorData arbitrary data provided by the operator
      */
-    function operatorSend(address from, address to, uint256 amount, bytes data, bytes operatorData) public
-      sync(from)
-      sync(to)
+    function operatorSend(address from, address to, uint256 amount, bytes data, bytes operatorData) public payable
       ifInState(State.Active)
     {
         _send(from, to, amount, data, msg.sender, operatorData);
+    }
+
+    /**
+     * send multiple amounts of tokens to a given address on behalf of another address.
+     * @param from the address from which to send tokens
+     * @param to the addresses to which to send tokens
+     * @param amount the numbers of tokens to send.  Must be a multiple of granularity
+     * @param data arbitrary data provided by the holder
+     * @param operatorData arbitrary data provided by the operator
+     */
+    function operatorBulkSend(address from, address[] to, uint256[] amount, bytes data, bytes operatorData) public payable
+      ifInState(State.Active)
+    {
+        for (uint256 i = 0; i < to.length; i++) {
+            operatorSend(from, to[i], amount[i], data, operatorData);
+        }
     }
 
     //
@@ -336,19 +347,16 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      */
     function _mint(address operator, address to, uint256 amount, bytes operatorData) internal {
         // Ensure that the amount is a multiple of granularity
-        require (amount % granularity == 0);
+        require(amount % granularity == 0, "amount must be a multiple of granularity");
 
         // Mint
         store.mint(to, amount);
 
-        // Call remote recipient
+        // Call token control contract if present
         address recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
         if (recipientImplementation == 0) {
             // The target does not implement ERC777TokensRecipient
-            if (isContract(to)) {
-                // The target is a contract; do not send tokens to this address
-                revert();
-            }
+            require(!isContract(to), "cannot mint tokens to contract that does not explicitly receive them");
         } else {
             ERC777TokensRecipient(recipientImplementation).tokensReceived(operator, address(0), to, amount, "", operatorData);
         }
@@ -367,31 +375,28 @@ contract ERC777Token is IERC777, ERC820Implementer, Managed {
      */
     function _send(address from, address to, uint256 amount, bytes data, address operator, bytes operatorData) internal {
         // Ensure that the to address is initialised
-        require(to != 0);
+        require(to != 0, "tokens cannot be sent to the 0 address");
 
         // Ensure that the amount is a multiple of granularity
-        require(amount % granularity == 0);
+        require(amount % granularity == 0, "amount must be a multiple of granularity");
 
         // Ensure that the operator is allowed to send
-        require(operator == from || operators[from][operator]);
+        require(operator == from || isOperatorFor(operator, from), "not allowed to send");
 
-        // Call remote sender if present
+        // Call token control contract if present
         address senderImplementation = interfaceAddr(from, "ERC777TokensSender");
         if (senderImplementation != 0) {
-            ERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, data, operatorData);
+            ERC777TokensSender(senderImplementation).tokensToSend.value(msg.value)(operator, from, to, amount, data, operatorData);
         }
 
         // Transfer
         store.transfer(from, to, amount);
 
-        // Call remote recipient
+        // Call token control contract if present
         address recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
         if (recipientImplementation == 0) {
             // The target does not implement ERC777TokensRecipient
-            if (isContract(to)) {
-                // The target is a contract; do not send tokens to this address
-                revert();
-            }
+            require(!isContract(to), "cannot send tokens to contract that does not explicitly receive them");
         } else {
             ERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, data, operatorData);
         }

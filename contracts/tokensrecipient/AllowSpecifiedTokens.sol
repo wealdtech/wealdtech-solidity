@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../token/ERC777TokensRecipient.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -29,6 +29,10 @@ contract AllowSpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
     // An event emitted when an allowed token is removed from the list
     event TokenRemoved(address recipient, address token);
 
+    constructor() public {
+        implementInterface("ERC777TokensRecipient");
+    }
+
     function addToken(address token) public {
         allowed[msg.sender][token] = true;
         emit TokenAdded(msg.sender, token);
@@ -41,15 +45,6 @@ contract AllowSpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
 
     function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
         (operator, holder, amount, data, operatorData);
-        require(allowed[recipient][msg.sender]);
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensRecipient")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }
+        require(allowed[recipient][msg.sender], "not allowed to receive that token");
     }
 }

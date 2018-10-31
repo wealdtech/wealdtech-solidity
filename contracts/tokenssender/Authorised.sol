@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
@@ -6,13 +6,11 @@ import '../registry/ERC820Implementer.sol';
 
 
 /**
- * @title CounterSignature
+ * @title Authorised
  *
- *        An ERC777 tokens sender contract that requires a counter-signature
- *        from an approved address to allow a transfer to proceed.
- *
- *        Note that the contract only allows one counter-signatory for each
- *        holder.
+ *        An ERC777 tokens sender contract that requires the holder,
+ *        operator, amount and value to match values in the supplied
+ *        signature to allow a transfer to proceed.
  *
  *        State of this contract: stable; development complete but the code is
  *        unaudited. and may contain bugs and/or security holes. Use at your own
@@ -23,70 +21,40 @@ import '../registry/ERC820Implementer.sol';
  *         some of your ERC-777 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract CounterSignature is ERC777TokensSender, ERC820Implementer {
+contract Authorised is ERC777TokensSender, ERC820Implementer {
     using SafeMath for uint256;
-
-    // Mapping is holder=>counter signatory
-    mapping(address=>address) public counterSignatories;
 
     // Mapping is hash=>used, to stop replays
     mapping(bytes32=>bool) private usedHashes;
-
-    // An event emitted when a counter-signatory is set
-    event CounterSignatorySet(address holder, address signatory);
-    // An event emitted when a counter-signatory is cleared
-    event CounterSignatoryCleared(address holder);
 
     constructor() public {
         implementInterface("ERC777TokensSender");
     }
 
     /**
-     * setCounterSignatory sets a counter-signatory.
-     */
-    function setCounterSignatory(address _counterSignatory) public {
-        counterSignatories[msg.sender] = _counterSignatory;
-        emit CounterSignatorySet(msg.sender, _counterSignatory);
-    }
-
-    /**
-     * clearCounterSignatory clears a counter-signatory.
-     */
-    function clearCounterSignatory() public {
-        counterSignatories[msg.sender] = 0;
-        emit CounterSignatoryCleared(msg.sender);
-    }
-
-    /**
-     * getCounterSignatory gets a counter-signatory.
-     */
-    function getCounterSignatory(address _holder) public constant returns (address) {
-        return counterSignatories[_holder];
-    }
-
-    /**
      * This expects operatorData to contain the signature (65 bytes)
      */
     function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
+        (recipient);
 
         // Ensure that operatorData contains the correct number of bytes
         require(operatorData.length == 65, "length of operator data incorrect");
 
-        // Token, operator, holder, recipient, amount
-        bytes32 hash = hashForCounterSignature(operator, holder, recipient, amount, data);
+        bytes32 hash = hashForSend(operator, amount, msg.value, data);
         require(!usedHashes[hash], "tokens already sent");
 
-        address counterSignatory = signer(hash, operatorData);
-        require(counterSignatory != 0, "signatory is invalid");
-        require(counterSignatory == counterSignatories[holder], "signatory is not a valid countersignatory");
+        address signatory = signer(hash, operatorData);
+        require(signatory != 0, "signatory is invalid");
+        require(signatory == holder, "signatory is not the holder");
         usedHashes[hash] = true;
+        holder.transfer(msg.value);
     }
 
     /**
-     * This generates the hash for the counter-signature
+     * This generates the hash for the signature
      */
-    function hashForCounterSignature(address operator, address holder, address recipient, uint256 amount, bytes data) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), operator, holder, recipient, amount, data));
+    function hashForSend(address operator, uint256 amount, uint256 value, bytes data) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(address(this), operator, amount, value, data));
     }
 
     /**

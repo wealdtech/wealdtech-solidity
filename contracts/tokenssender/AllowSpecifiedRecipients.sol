@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import '../token/ERC777TokensSender.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -28,6 +28,10 @@ contract AllowSpecifiedRecipients is ERC777TokensSender, ERC820Implementer {
     // An event emitted when a recipient is cleared
     event RecipientCleared(address holder, address recipient);
 
+    constructor() public {
+        implementInterface("ERC777TokensSender");
+    }
+
     /**
      * setRecipient sets a recipient to which transfers are allowed
      */
@@ -48,17 +52,8 @@ contract AllowSpecifiedRecipients is ERC777TokensSender, ERC820Implementer {
         return recipients[_holder][_recipient];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public payable {
         (operator, value, data, operatorData);
-        require(recipients[holder][recipient]);
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensSender")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }   
+        require(recipients[holder][recipient], "not allowed to send to that recipient");
     }
 }

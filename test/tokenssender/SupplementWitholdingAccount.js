@@ -31,7 +31,7 @@ contract('SupplementWitholdingAccount', accounts => {
     }
 
     it('sets up', async function() {
-        erc820Instance = await ERC820Registry.at('0x991a1bcb077599290d7305493c9a630c20f8b798');
+        erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
         erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
             from: accounts[0],
             gas: 10000000
@@ -40,6 +40,14 @@ contract('SupplementWitholdingAccount', accounts => {
             from: accounts[0]
         });
         expectedBalances[0] = initialSupply.mul(1);
+        await confirmBalances();
+
+        // accounts[1] is our test source address so send it some tokens
+        await erc777Instance.send(accounts[1], granularity.mul(200), "", {
+            from: accounts[0]
+        });
+        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(200));
+        expectedBalances[1] = expectedBalances[1].add(granularity.mul(200));
         await confirmBalances();
     });
 
@@ -51,72 +59,76 @@ contract('SupplementWitholdingAccount', accounts => {
 
     it('supplements tokens accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), instance.address, {
-            from: accounts[0]
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), instance.address, {
+            from: accounts[1]
         });
 
-        // Set up 15% witholding from accounts[0] to accounts[2]
-        await instance.setSupplement(accounts[2], 1500);
+        // Set up 15% witholding from accounts[1] to accounts[3]
+        await instance.setSupplement(accounts[3], 1500, {
+			from: accounts[1]
+		});
 
-        // Set up the sender contract as an operator for accounts[0]
+        // Set up the sender contract as an operator for accounts[1]
         await erc777Instance.authorizeOperator(instance.address, {
-            from: accounts[0]
+            from: accounts[1]
         });
 
-        // Transfer 100*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
-            from: accounts[0]
+        // Transfer 100*granularity tokens from accounts[1] to accounts[2]
+        await erc777Instance.send(accounts[2], granularity.mul(100), "", {
+            from: accounts[1]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
-        expectedBalances[1] = expectedBalances[1].add(granularity.mul(100));
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(15));
-        expectedBalances[2] = expectedBalances[2].add(granularity.mul(15));
+        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(100));
+        expectedBalances[2] = expectedBalances[2].add(granularity.mul(100));
+        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(15));
+        expectedBalances[3] = expectedBalances[3].add(granularity.mul(15));
         await confirmBalances();
 
         // Unregister the operator
         await erc777Instance.revokeOperator(instance.address, {
-            from: accounts[0]
+            from: accounts[1]
         });
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), 0, {
-            from: accounts[0]
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), 0, {
+            from: accounts[1]
         });
     });
 
     it('supplements odd-granularity values accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), instance.address, {
-            from: accounts[0]
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), instance.address, {
+            from: accounts[1]
         });
 
-        // Set up 15% witholding from accounts[0] to accounts[2]
-        await instance.setSupplement(accounts[2], 1500);
+        // Set up 15% witholding from accounts[1] to accounts[3]
+        await instance.setSupplement(accounts[3], 1500, {
+			from: accounts[1]
+		});
 
-        // Set up the sender contract as an operator for accounts[0]
+        // Set up the sender contract as an operator for accounts[1]
         await erc777Instance.authorizeOperator(instance.address, {
-            from: accounts[0]
+            from: accounts[1]
         });
 
-        // Transfer 10*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(10), "", {
-            from: accounts[0]
+        // Transfer 10*granularity tokens from accounts[1] to accounts[2]
+        await erc777Instance.send(accounts[2], granularity.mul(10), "", {
+            from: accounts[1]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(10));
-        expectedBalances[1] = expectedBalances[1].add(granularity.mul(10));
+        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(10));
+        expectedBalances[2] = expectedBalances[2].add(granularity.mul(10));
         // Witholding should round up the 1.5 to 2 for granularity...
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(2));
-        expectedBalances[2] = expectedBalances[2].add(granularity.mul(2));
+        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(2));
+        expectedBalances[3] = expectedBalances[3].add(granularity.mul(2));
         await confirmBalances();
 
         // Unregister the operator
         await erc777Instance.revokeOperator(instance.address, {
-            from: accounts[0]
+            from: accounts[1]
         });
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[0], web3.sha3("ERC777TokensSender"), 0, {
-            from: accounts[0]
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), 0, {
+            from: accounts[1]
         });
     });
 

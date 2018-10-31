@@ -18,10 +18,10 @@ contract IERC777 {
     function isOperatorFor(address operator, address tokenHolder) public constant returns (bool);
 
     function send(address to, uint256 amount, bytes data) public;
-    function operatorSend(address from, address to, uint256 amount, bytes data, bytes operatorData) public;
+    function operatorSend(address from, address to, uint256 amount, bytes data, bytes operatorData) public payable;
 
     function burn(uint256 amount, bytes data) public;
-    function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) public;
+    function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) public payable;
 
     event Sent(address indexed operator, address indexed from, address indexed to, uint256 amount, bytes data, bytes operatorData);
     event Minted(address indexed operator, address indexed to, uint256 amount, bytes data);
