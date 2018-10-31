@@ -3,12 +3,12 @@
 const assertRevert = require('../helpers/assertRevert.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
-const CounterSignature = artifacts.require('CounterSignature');
+const Authorised = artifacts.require('Authorised');
 const ERC820Registry = artifacts.require('ERC820Registry');
 
 const sha3 = require('solidity-sha3').default;
 
-contract('CounterSignature', accounts => {
+contract('Authorised', accounts => {
     var erc777Instance;
     var erc820Instance;
     var instance;
@@ -54,15 +54,16 @@ contract('CounterSignature', accounts => {
     });
 
     it('creates the sender contract', async function() {
-        instance = await CounterSignature.new({
+        instance = await Authorised.new({
             from: accounts[0]
         });
     });
 
     it('does not transfer when not set up', async function() {
-        // Create the operator data, which is the counter-signature
-        const hash = await instance.hashForCounterSignature(accounts[2], accounts[1], accounts[3], granularity.mul(5), "");
-        const operatorData = await web3.eth.sign(accounts[4], hash);
+        // Create the operator data, which is the signature
+        const value = web3.toWei('2', 'ether');
+        const hash = await instance.hashForSend(accounts[2], granularity.mul(5), value, "");
+        const operatorData = await web3.eth.sign(accounts[1], hash);
 
         // Register the sender
         await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), instance.address, {
@@ -78,55 +79,47 @@ contract('CounterSignature', accounts => {
         } catch (error) {
             assertRevert(error);
         }
+    });
 
-        // Set up accounts[2] as an operator for accounts[1]
-        await erc777Instance.authorizeOperator(accounts[2], {
+    it('transfers when set up', async function() {
+        // Create the operator data, which is the signature
+        const value = web3.toWei('2', 'ether');
+        const hash = await instance.hashForSend(accounts[2], granularity.mul(5), value, "");
+        const operatorData = await web3.eth.sign(accounts[1], hash);
+
+        // Set up everyone as an operator for accounts[1]
+        await erc777Instance.authorizeOperator('0xffffffffffffffffffffffffffffffffffffffff', {
             from: accounts[1]
         });
         assert.equal(await erc777Instance.isOperatorFor(accounts[2], accounts[1]), true);
 
-        // Attempt to transfer tokens as accounts[2] from accounts[1] to accounts[3] - should fail because accounts[3] has not been
-        // named as a countersignatory for accounts[1]
-        try {
-            await erc777Instance.operatorSend(accounts[1], accounts[3], granularity.mul(5), "", operatorData, {
-                from: accounts[2]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-    });
-
-    it('transfers when set up', async function() {
-        // Create the operator data, which is the counter-signature
-        const hash = await instance.hashForCounterSignature(accounts[2], accounts[1], accounts[3], granularity.mul(5), "");
-        const operatorData = await web3.eth.sign(accounts[4], hash);
-
-        // Set up accounts[4] as a counter-signatory for accounts[1]
-        await instance.setCounterSignatory(accounts[4], {
-            from: accounts[1]
-        });
-        assert.equal(await instance.getCounterSignatory(accounts[1]), accounts[4]);
+        const accounts1OldBalance = await web3.eth.getBalance(accounts[1]);
 
         // Transfer tokens as accounts[2] from accounts[1] to accounts[3]
         await erc777Instance.operatorSend(accounts[1], accounts[3], granularity.mul(5), "", operatorData, {
-            from: accounts[2]
+            from: accounts[2],
+            value: value
         });
         expectedBalances[1] = expectedBalances[1].sub(granularity.mul(5));
         expectedBalances[3] = expectedBalances[3].add(granularity.mul(5));
         await confirmBalances();
+
+        const accounts1NewBalance = await web3.eth.getBalance(accounts[1]);
+        const accounts1ExpectedBalance = accounts1OldBalance.plus(web3.toWei(2, 'ether'));
+        assert.equal(accounts1NewBalance.toString(), accounts1ExpectedBalance.toString());
     });
 
     it('does not allow the same transfer twice', async function() {
-        // Create the operator data, which is the counter-signature.  Same as the last test
-        const hash = await instance.hashForCounterSignature(accounts[2], accounts[1], accounts[3], granularity.mul(5), "");
-        const operatorData = await web3.eth.sign(accounts[4], hash);
+        // Create the operator data, which is the signature
+        const value = web3.toWei('2', 'ether');
+        const hash = await instance.hashForSend(accounts[2], granularity.mul(5), value, "");
+        const operatorData = await web3.eth.sign(accounts[1], hash);
 
-        // Attempt to transfer tokens as accounts[2] from accounts[1] to accounts[3] - should fail as the values are the same as
-        // a previous successful transfer
+        // Attempt to transfer tokens again - should fail as the parameters are the same as a previous transaction
         try {
             await erc777Instance.operatorSend(accounts[1], accounts[3], granularity.mul(5), "", operatorData, {
-                from: accounts[2]
+                from: accounts[2],
+                value: value
             });
             assert.fail();
         } catch (error) {
@@ -134,32 +127,34 @@ contract('CounterSignature', accounts => {
         }
     });
 
-    it('transfers with new data', async function() {
-        // Create the operator data, which is the counter-signature
-        const hash = await instance.hashForCounterSignature(accounts[2], accounts[1], accounts[3], granularity.mul(5), "new");
-        const operatorData = await web3.eth.sign(accounts[4], hash);
+    it('transfers with different data', async function() {
+        // Create the operator data, which is the signature
+        const value = web3.toWei('2', 'ether');
+        const hash = await instance.hashForSend(accounts[2], granularity.mul(5), value, "data");
+        const operatorData = await web3.eth.sign(accounts[1], hash);
 
         // Transfer tokens as accounts[2] from accounts[1] to accounts[3]
-        await erc777Instance.operatorSend(accounts[1], accounts[3], granularity.mul(5), "new", operatorData, {
-            from: accounts[2]
+        await erc777Instance.operatorSend(accounts[1], accounts[3], granularity.mul(5), "data", operatorData, {
+            from: accounts[2],
+            value: value
         });
         expectedBalances[1] = expectedBalances[1].sub(granularity.mul(5));
         expectedBalances[3] = expectedBalances[3].add(granularity.mul(5));
         await confirmBalances();
     });
 
-    it('recognises deregistration of counter-signatories', async function() {
-        // Create the operator data, which is the counter-signature
-        const hash = await instance.hashForCounterSignature(accounts[2], accounts[1], accounts[3], granularity.mul(5), "");
-        const operatorData = await web3.eth.sign(accounts[4], hash);
+    it('does not work when de-registered', async function() {
+        // Create the operator data, which is the signature
+        const value = web3.toWei('2', 'ether');
+        const hash = await instance.hashForSend(accounts[2], granularity.mul(5), value, "");
+        const operatorData = await web3.eth.sign(accounts[1], hash);
 
-        // Remove accounts[4] as a counter-signatory for accounts[1]
-        await instance.clearCounterSignatory({
+        await erc777Instance.revokeOperator('0xffffffffffffffffffffffffffffffffffffffff', {
             from: accounts[1]
         });
-        assert.equal(await instance.getCounterSignatory(accounts[1]), 0);
+        assert.equal(await erc777Instance.isOperatorFor(accounts[2], accounts[1]), false);
 
-        // Attempt to transfer tokens as accounts[2] from accounts[1] to accounts[3] - should fail
+        // Attempt to transfer tokens as accounts[2] from accounts[1] to accounts[3]
         try {
             await erc777Instance.operatorSend(accounts[1], accounts[3], granularity.mul(5), "", operatorData, {
                 from: accounts[2]
@@ -168,10 +163,5 @@ contract('CounterSignature', accounts => {
         } catch (error) {
             assertRevert(error);
         }
-
-        // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), 0, {
-            from: accounts[1]
-        });
     });
 });

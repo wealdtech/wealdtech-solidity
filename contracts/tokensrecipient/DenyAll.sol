@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../token/ERC777TokensRecipient.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -21,17 +21,12 @@ import 'eip820/contracts/ERC820Implementer.sol';
  *         development of these and future contracts
  */ 
 contract DenyAll is ERC777TokensRecipient, ERC820Implementer {
+    constructor() public {
+        implementInterface("ERC777TokensRecipient");
+    }
+
     function tokensReceived(address operator, address from, address to, uint256 value, bytes data, bytes operatorData) public {
         (from, to, value, data, operator, operatorData);
         revert();
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensRecipient")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }   
     }
 }

@@ -31,5 +31,5 @@ interface ERC777TokensSender {
       * @param data is data supplied by the user for the transfer
       * @param operatorData is data supplied by the operator for the transfer
       */
-    function tokensToSend(address operator, address from, address to, uint256 amount, bytes data, bytes operatorData) public;
+    function tokensToSend(address operator, address from, address to, uint256 amount, bytes data, bytes operatorData) public payable;
 }

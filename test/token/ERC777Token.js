@@ -1,6 +1,7 @@
 'use strict';
 
 const assertRevert = require('../helpers/assertRevert.js');
+const sha3 = require('solidity-sha3').default;
 
 const ERC777Token = artifacts.require('ERC777Token');
 const ERC820Registry = artifacts.require('ERC820Registry');
@@ -12,7 +13,6 @@ function pack(addr, value) {
 contract('ERC777Token', accounts => {
     var instance;
     var oldInstance;
-    var erc820Instance;
 
     let expectedBalances = [
         web3.toBigNumber(0),
@@ -33,11 +33,21 @@ contract('ERC777Token', accounts => {
         assert.equal((await instance.totalSupply()).toString(), expectedBalances.reduce((a, b) => a.add(b), web3.toBigNumber('0')).toString(), 'Total supply is incorrect');
     }
 
-    it('sets up', async function() {
-        erc820Instance = await ERC820Registry.at('0x991a1bcb077599290d7305493c9a630c20f8b798');
+    it('confirms that ERC820 is deployed', async function() {
+        const erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
+        await erc820Instance.setManager(accounts[0], accounts[1]);
+        const ac1 = await erc820Instance.getManager(accounts[0]);
+        assert.equal(ac1, accounts[1]);
+        await erc820Instance.setManager(accounts[0], 0, {
+            from: accounts[1]
+        });
+        const ac0 = await erc820Instance.getManager(accounts[0]);
+        assert.equal(ac0, accounts[0]);
+        const hash = sha3("Test");
+        await erc820Instance.setInterfaceImplementer(accounts[0], hash, accounts[0]);
     });
 
-    it('has an initial balance', async function() {
+    it('instantiates the token', async function() {
         instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
             from: accounts[0],
             gas: 10000000
@@ -45,6 +55,9 @@ contract('ERC777Token', accounts => {
         await instance.activate({
             from: accounts[0]
         });
+    });
+
+    it('has an initial balance', async function() {
         expectedBalances[0] = initialSupply.mul(1);
         await confirmBalances();
     });

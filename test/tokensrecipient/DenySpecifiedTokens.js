@@ -31,7 +31,7 @@ contract('DenySpecifiedTokens', accounts => {
     }
 
     it('sets up', async function() {
-        erc820Instance = await ERC820Registry.at('0x991a1bcb077599290d7305493c9a630c20f8b798');
+        erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
         erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
             from: accounts[0],
             gas: 10000000

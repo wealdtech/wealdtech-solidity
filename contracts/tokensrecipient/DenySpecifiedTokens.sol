@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../token/ERC777TokensRecipient.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -28,11 +28,21 @@ contract DenySpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
     // An event emitted when a disallowed token is removed from the list
     event TokenRemoved(address recipient, address token);
 
+    constructor() public {
+        implementInterface("ERC777TokensRecipient");
+    }
+
+    /**
+     * Add a token to the list of tokens that this address will refuse.
+     */
     function addToken(address token) public {
         disallowed[msg.sender][token] = true;
         emit TokenAdded(msg.sender, token);
     }
 
+    /**
+     * Remove a token from the list of tokens that this address will refuse.
+     */
     function removeToken(address token) public {
         disallowed[msg.sender][token] = false;
         emit TokenRemoved(msg.sender, token);
@@ -40,15 +50,6 @@ contract DenySpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
 
     function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
         (operator, holder, amount, data, operatorData);
-        require(!disallowed[recipient][msg.sender]);
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensRecipient")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }
+        require(!disallowed[recipient][msg.sender], "token is explicitly disallowed");
     }
 }

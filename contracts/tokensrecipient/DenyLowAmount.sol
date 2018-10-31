@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../token/ERC777TokensRecipient.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -28,6 +28,10 @@ contract DenyLowAmount is ERC777TokensRecipient, ERC820Implementer {
     // An event emitted when a minimum transfer amount is cleared
     event MinimumAmountCleared(address recipient, address token);
 
+    constructor() public {
+        implementInterface("ERC777TokensRecipient");
+    }
+
     function setMinimumAmount(address token, uint256 amount) public {
         minimumAmounts[msg.sender][token] = amount;
         emit MinimumAmountSet(msg.sender, token, amount);
@@ -40,15 +44,6 @@ contract DenyLowAmount is ERC777TokensRecipient, ERC820Implementer {
 
     function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
         (operator, holder, data, operatorData);
-        require(amount > minimumAmounts[recipient][msg.sender]);
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensRecipient")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }   
+        require(amount > minimumAmounts[recipient][msg.sender], "transfer value too low to be accepted");
     }
 }

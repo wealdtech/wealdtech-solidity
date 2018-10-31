@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 import '../token/ERC777TokensSender.sol';
-import 'eip820/contracts/ERC820Implementer.sol';
+import '../registry/ERC820Implementer.sol';
 
 
 /**
@@ -30,6 +30,10 @@ contract EmitMessage is ERC777TokensSender, ERC820Implementer {
     // The event that is emitted to log a message
     event Message(address holder, address recipient, string message);
 
+    constructor() public {
+        implementInterface("ERC777TokensSender");
+    }
+
     /**
      * setMessage sets a message.  If recipient is 0 then this message will
      * apply for all sends from this holder.
@@ -54,7 +58,7 @@ contract EmitMessage is ERC777TokensSender, ERC820Implementer {
     /**
      * Emit a message if found
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
         (operator, amount, data, operatorData);
         string memory message = messages[holder][recipient];
         if (bytes(message).length > 0) {
@@ -65,14 +69,5 @@ contract EmitMessage is ERC777TokensSender, ERC820Implementer {
                 emit Message(holder, recipient, message);
             }
         }
-    }
-
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) pure public returns(bytes32) {
-        (addr);
-        if (interfaceHash == keccak256("ERC777TokensSender")) {
-            return keccak256("ERC820_ACCEPT_MAGIC");
-        } else {
-            return 0;
-        }   
     }
 }
