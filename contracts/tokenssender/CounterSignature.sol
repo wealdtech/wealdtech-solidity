@@ -68,6 +68,7 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
      * This expects operatorData to contain the signature (65 bytes)
      */
     function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
+        require(msg.value == 0, "ether not accepted");
 
         // Ensure that operatorData contains the correct number of bytes
         require(operatorData.length == 65, "length of operator data incorrect");
