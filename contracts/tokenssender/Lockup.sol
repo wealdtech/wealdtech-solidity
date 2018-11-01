@@ -90,6 +90,7 @@ contract Lockup is ERC777TokensSender, ERC820Implementer {
     function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
         (operator, data, operatorData);
 
+        require(msg.value == 0, "ether not accepted");
         require(expiries[msg.sender][holder] != 0, "lockup expiry is not set");
         require(now >= expiries[msg.sender][holder], "lockup has not expired");
         require(allowance[msg.sender][holder][recipient] <= amount, "amount exceeds allowance");
