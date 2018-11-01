@@ -14,8 +14,6 @@ contract('FixedPriceSeller', accounts => {
     let expectedBalances = [
         web3.toBigNumber(0),
         web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
         web3.toBigNumber(0)
     ];
     const initialSupply = web3.toBigNumber('1000000000000000000000');
