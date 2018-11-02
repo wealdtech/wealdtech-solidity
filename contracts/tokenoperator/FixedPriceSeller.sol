@@ -39,13 +39,20 @@ contract FixedPriceSeller {
      * Sell tokens from a holder at their price
      */
     function sell(address _token, address _holder) public payable {
+        // N.B. need to do this here to avoid div by zero afterwards.
         require(costPerToken[_token][_holder] != 0, "not for sale");
         uint256 amount = msg.value.div(costPerToken[_token][_holder]);
-        require(amount > 0, "not enough ether paid");
-        uint256 value = amount.mul(costPerToken[_token][_holder]);
-        require(value == msg.value, "non-integer number of tokens purchased");
+        confirmAllowed(_token, _holder, msg.value, amount);
 
         IERC777(_token).operatorSend(_holder, msg.sender, amount, "", "");
         _holder.transfer(msg.value);
+    }
+
+    function confirmAllowed(address _token, address _holder, uint256 _value, uint256 _amount) internal view {
+        // N.B. we do this here as well as in sell() to allow for composition
+        require(costPerToken[_token][_holder] != 0, "not for sale");
+        require(_amount > 0, "not enough ether paid");
+        uint256 value = _amount.mul(costPerToken[_token][_holder]);
+        require(value == _value, "non-integer number of tokens purchased");
     }
 }

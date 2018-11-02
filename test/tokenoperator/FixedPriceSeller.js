@@ -9,7 +9,7 @@ const sha3 = require('solidity-sha3').default;
 
 contract('FixedPriceSeller', accounts => {
     var erc777Instance;
-    var instance;
+    var operator;
 
     let expectedBalances = [
         web3.toBigNumber(0),
@@ -49,20 +49,20 @@ contract('FixedPriceSeller', accounts => {
     });
 
     it('creates the operator contract', async function() {
-        instance = await FixedPriceSeller.new({
+        operator = await FixedPriceSeller.new({
             from: accounts[9]
         });
     });
 
     it('sets up the operator for accounts[1]', async function() {
-        await instance.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+        await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
 			from: accounts[1]
 		});
 
-        await erc777Instance.authorizeOperator(instance.address, {
+        await erc777Instance.authorizeOperator(operator.address, {
             from: accounts[1]
         });
-        assert.equal(await erc777Instance.isOperatorFor(instance.address, accounts[1]), true);
+        assert.equal(await erc777Instance.isOperatorFor(operator.address, accounts[1]), true);
     });
 
     it('sells tokens', async function() {
@@ -71,7 +71,7 @@ contract('FixedPriceSeller', accounts => {
         const tokens = granularity.mul(5);
         // value is 1 wei per token
         const value = web3.toWei(tokens.toString(), 'wei');
-        await instance.sell(erc777Instance.address, accounts[1], {
+        await operator.sell(erc777Instance.address, accounts[1], {
             from: accounts[2],
             value: value
         });
@@ -85,49 +85,66 @@ contract('FixedPriceSeller', accounts => {
     });
 
     it('does not sell when a cost is not set', async function() {
-        await instance.setCostPerToken(erc777Instance.address, 0, {
+        await operator.setCostPerToken(erc777Instance.address, 0, {
 			from: accounts[1]
 		});
 
         const tokens = granularity.mul(5);
         const value = web3.toWei(tokens.toString(), 'wei');
         try {
-            await instance.sell(erc777Instance.address, accounts[1], {
+            await operator.sell(erc777Instance.address, accounts[1], {
                 from: accounts[2],
                 value: value
             });
             assert.fail();
         } catch (error) {
-            assertRevert(error);
+            assertRevert(error, 'not for sale');
         }
 
-        await instance.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+        await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
 			from: accounts[1]
 		});
-
     });
 
     it('does not sell when not paid', async function() {
         // Transfer tokens as accounts[1] from accounts[1] to accounts[3]
+        try {
+            await operator.sell(erc777Instance.address, accounts[1], {
+                from: accounts[2],
+            });
+            assert.fail();
+        } catch (error) {
+            assertRevert(error, 'not enough ether paid');
+        }
+    });
+
+    it('does not sell when incorrect value passed', async function() {
+        await operator.setCostPerToken(erc777Instance.address, web3.toWei(2, 'wei'), {
+			from: accounts[1]
+		});
+        // Transfer 2.5 tokens as accounts[1] from accounts[1] to accounts[3]
         const tokens = granularity.mul(5);
         // value is not enough...
         const value = web3.toWei(1, 'wei');
         try {
-            await instance.sell(erc777Instance.address, accounts[1], {
+            await operator.sell(erc777Instance.address, accounts[1], {
                 from: accounts[2],
                 value: value
             });
             assert.fail();
         } catch (error) {
-            assertRevert(error);
+            assertRevert(error, 'not enough ether paid');
         }
+        await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+			from: accounts[1]
+		});
     });
 
     it('de-registers', async function() {
-        await erc777Instance.revokeOperator(instance.address, {
+        await erc777Instance.revokeOperator(operator.address, {
             from: accounts[1]
         });
-        assert.equal(await erc777Instance.isOperatorFor(instance.address, accounts[1]), false);
+        assert.equal(await erc777Instance.isOperatorFor(operator.address, accounts[1]), false);
     });
 
     it('does not work when de-registered', async function() {
@@ -137,13 +154,13 @@ contract('FixedPriceSeller', accounts => {
         const value = web3.toWei(tokens.toString(), 'wei');
 
         try {
-            await instance.sell(erc777Instance.address, accounts[1], {
+            await operator.sell(erc777Instance.address, accounts[1], {
                 from: accounts[2],
                 value: value
             });
             assert.fail();
         } catch (error) {
-            assertRevert(error);
+            assertRevert(error, 'not allowed to send');
         }
     });
 });
