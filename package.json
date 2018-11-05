@@ -10,6 +10,7 @@
     "ens": "0.0.1",
     "erc820": "^0.0.22",
     "truffle": "^4.1.11",
+    "truffle-assertions": "^0.6.3",
     "zeppelin-solidity": "^1.2.0"
   }
 }

@@ -67,14 +67,13 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
     /**
      * This expects operatorData to contain the signature (65 bytes)
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
-        require(msg.value == 0, "ether not accepted");
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
 
         // Ensure that operatorData contains the correct number of bytes
         require(operatorData.length == 65, "length of operator data incorrect");
 
         // Token, operator, holder, recipient, amount
-        bytes32 hash = hashForCounterSignature(operator, holder, recipient, amount, data);
+        bytes32 hash = hashForCounterSignature(msg.sender, operator, holder, recipient, amount, data);
         require(!usedHashes[hash], "tokens already sent");
 
         address counterSignatory = signer(hash, operatorData);
@@ -86,8 +85,8 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
     /**
      * This generates the hash for the counter-signature
      */
-    function hashForCounterSignature(address operator, address holder, address recipient, uint256 amount, bytes data) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), operator, holder, recipient, amount, data));
+    function hashForCounterSignature(address token, address operator, address holder, address recipient, uint256 amount, bytes data) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(token, address(this), operator, holder, recipient, amount, data));
     }
 
     /**

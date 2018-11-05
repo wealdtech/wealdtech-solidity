@@ -1,7 +1,8 @@
 'use strict';
 
-const assertRevert = require('../helpers/assertRevert.js');
 const sha3 = require('solidity-sha3').default;
+const truffleAssert = require('truffle-assertions');
+const asserts = require('../helpers/asserts.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const ERC820Registry = artifacts.require('ERC820Registry');
@@ -14,24 +15,10 @@ contract('ERC777Token', accounts => {
     var instance;
     var oldInstance;
 
-    let expectedBalances = [
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0)
-    ];
     const initialSupply = web3.toBigNumber('1000000000000000000000');
     const granularity = web3.toBigNumber('10000000000000000');
 
-    // Helper to confirm that balances are as expected
-    async function confirmBalances() {
-        for (var i = 0; i < expectedBalances.length; i++) {
-            assert.equal((await instance.balanceOf(accounts[i])).toString(10), expectedBalances[i].toString(10), 'Balance of account ' + i + ' is incorrect');
-        }
-        // Also confirm total supply
-        assert.equal((await instance.totalSupply()).toString(), expectedBalances.reduce((a, b) => a.add(b), web3.toBigNumber('0')).toString(), 'Total supply is incorrect');
-    }
+    let tokenBalances = {};
 
     it('confirms that ERC820 is deployed', async function() {
         const erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
@@ -48,7 +35,7 @@ contract('ERC777Token', accounts => {
     });
 
     it('instantiates the token', async function() {
-        instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
+        instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
             from: accounts[0],
             gas: 10000000
         });
@@ -58,136 +45,99 @@ contract('ERC777Token', accounts => {
     });
 
     it('has an initial balance', async function() {
-        expectedBalances[0] = initialSupply.mul(1);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = initialSupply.mul(1);
+        tokenBalances[accounts[1]] = web3.toBigNumber(0);
+        tokenBalances[accounts[2]] = web3.toBigNumber(0);
+        await asserts.assertTokenBalances(instance, tokenBalances);
     });
 
     it('can mint tokens', async function() {
         await instance.mint(accounts[1], granularity, "", {
             from: accounts[0]
         });
-        expectedBalances[1] = expectedBalances[1].add(granularity);
-        await confirmBalances();
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(granularity);
+        await asserts.assertTokenBalances(instance, tokenBalances);
     });
 
     it('cannot mint sub-granularity tokens', async function() {
-        try {
-            await instance.mint(accounts[1], granularity.add(1), "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.mint(accounts[1], granularity.add(1), "", {
+                    from: accounts[0]
+                }), 'amount must be a multiple of granularity');
     });
 
     it('cannot mint tokens without permission', async function() {
-        try {
-            await instance.mint(accounts[1], granularity, "", {
-                from: accounts[1]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.mint(accounts[1], granularity, "", {
+                    from: accounts[1]
+                }));
     });
 
     it('can disable minting', async function() {
         await instance.disableMinting({from: accounts[0]});
-        try {
-            await instance.mint(accounts[1], granularity, "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
+        await truffleAssert.reverts(
+                instance.mint(accounts[1], granularity, "", {
+                    from: accounts[0]
+                }), 'minting disabled');
     });
 
     it('can burn tokens', async function() {
         await instance.burn(granularity, "", {
-            from: accounts[1]
+            from: accounts[0]
         });
-        expectedBalances[1] = expectedBalances[1].sub(granularity);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(granularity);
+        await asserts.assertTokenBalances(instance, tokenBalances);
     });
 
     it('cannot burn sub-granularity tokens', async function() {
-        try {
-            await instance.burn(granularity.add(1), "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.burn(granularity.add(1), "", {
+                    from: accounts[0]
+                }), 'amount must be a multiple of granularity');
     });
 
     it('cannot burn more tokens than it owns', async function() {
-        try {
-            await instance.burn(expectedBalances[0].add(granularity), "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.burn(tokenBalances[accounts[0]].add(granularity), "", {
+                    from: accounts[0]
+                }), 'not enough tokens in holder\'s account');
     });
 
     it('can send tokens', async function() {
         await instance.send(accounts[1], granularity, "", {
             from: accounts[0]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[1] = expectedBalances[1].add(granularity);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(granularity);
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(granularity);
+        await asserts.assertTokenBalances(instance, tokenBalances);
     });
 
     it('cannot send sub-granularity amounts', async function() {
-        try {
-            await instance.send(accounts[1], granularity.add(1), "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.send(accounts[1], granularity.add(1), "", {
+                    from: accounts[0]
+                }), 'amount must be a multiple of granularity');
     });
 
     it('cannot send more tokens than it owns', async function() {
-        try {
-            await instance.send(accounts[1], expectedBalances[0].add(granularity), "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.send(accounts[1], tokenBalances[accounts[0]].add(granularity), "", {
+                    from: accounts[0]
+                }), 'not enough tokens in holder\'s account');
     });
 
     it('cannot send to an unregistered contract', async function() {
         // Create an arbitary contract
-        var contract = await ERC777Token.new(1, 'Any contract', 'ANY', granularity, initialSupply, 0, {
+        var contract = await ERC777Token.new(1, 'Any contract', 'ANY', granularity, initialSupply, [], 0, {
             from: accounts[3],
             gas: 10000000
         });
 
         // Try to send it some tokens
-        try {
-            await instance.send(contract.address, granularity, "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.send(contract.address, granularity, "", {
+                    from: accounts[0]
+                }), 'cannot send tokens to contract that does not explicitly receive them');
     });
 
     it('carries out authorization of an operator', async function() {
@@ -212,38 +162,62 @@ contract('ERC777Token', accounts => {
     });
 
     it('does not allow authorization of self as an operator', async function() {
-        try {
-            await instance.authorizeOperator(accounts[0], {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
+        await truffleAssert.reverts(
+                instance.authorizeOperator(accounts[0], {
+                    from: accounts[0]
+                }), 'not allowed to set yourself as an operator');
     });
 
     it('does not allow revocation of self as an operator', async function() {
-        try {
-            await instance.revokeOperator(accounts[0], {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
+        await truffleAssert.reverts(
+                instance.revokeOperator(accounts[0], {
+                    from: accounts[0]
+                }), 'not allowed to remove yourself as an operator');
+    });
+
+    it('recognises default operators', async function() {
+        const operator1 = accounts[8];
+        const operator2 = accounts[9];
+        const operators = [operator1, operator2]
+
+        // Create an instance with default operators
+        const instance = await ERC777Token.new(1, 'Default operators', 'DFT', granularity, initialSupply, operators, 0, {
+            from: accounts[1],
+            gas: 10000000
+        });
+        await instance.activate({
+            from: accounts[1]
+        });
+
+        // Ensure that operator1 is an operator for all accounts
+        for (var i = 0; i < 8; i++) {
+            assert.equal(await instance.isOperatorFor(operator1, accounts[i]), true);
+            assert.equal(await instance.isOperatorFor(operator2, accounts[i]), true);
         }
+
+        // Revoke operator1 as an operator for accounts[0]
+        await instance.revokeOperator(operator1, {
+            from: accounts[0]
+        });
+        assert.equal(await instance.isOperatorFor(operator1, accounts[0]), false);
+        assert.equal(await instance.isOperatorFor(operator2, accounts[0]), true);
+        assert.equal(await instance.isOperatorFor(operator1, accounts[1]), true);
+
+        // Reinstate operator1 as an operator for accounts[0]
+        await instance.authorizeOperator(operator1, {
+            from: accounts[0]
+        });
+        assert.equal(await instance.isOperatorFor(operator1, accounts[0]), true);
+        assert.equal(await instance.isOperatorFor(operator2, accounts[0]), true);
+        assert.equal(await instance.isOperatorFor(operator1, accounts[1]), true);
     });
 
     it('allows an operator to send on a another\'s behalf', async function() {
         // accounts[1] sends on behalf of accounts[0]; should fail
-        try {
-            await instance.operatorSend(accounts[0], accounts[2], granularity, "", "", {
-                from: accounts[1]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.operatorSend(accounts[0], accounts[2], granularity, '', '', {
+                    from: accounts[1]
+                }), 'not allowed to send');
 
         // Make accounts[1] an operator for accounts[0]
         await instance.authorizeOperator(accounts[1], {
@@ -254,9 +228,9 @@ contract('ERC777Token', accounts => {
         await instance.operatorSend(accounts[0], accounts[2], granularity, "user", "operator", {
             from: accounts[1]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[2] = expectedBalances[2].add(granularity);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(granularity);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(granularity);
+        await asserts.assertTokenBalances(instance, tokenBalances);
 
         // Revoke accounts[1] as an operator for accounts[0]
         await instance.revokeOperator(accounts[1], {
@@ -264,29 +238,24 @@ contract('ERC777Token', accounts => {
         });
 
         // accounts[1] sends on behalf of accounts[0]; should fail
-        try {
-            await instance.operatorSend(accounts[0], accounts[2], granularity, "", "", {
-                from: accounts[1]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-
-        await confirmBalances();
+        await truffleAssert.reverts(
+                instance.operatorSend(accounts[0], accounts[2], granularity, '', '', {
+                    from: accounts[1]
+                }), 'not allowed to send');
     });
 
     it('can upgrade to a new contract', async function() {
         oldInstance = instance;
-        instance = await ERC777Token.new(2, 'Test token', 'TST', await oldInstance.granularity(), await oldInstance.totalSupply(), await oldInstance.store(), {
+        instance = await ERC777Token.new(2, 'Test token', 'TST', await oldInstance.granularity(), await oldInstance.totalSupply(), [], await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
         await instance.activate({
             from: accounts[1]
         });
+
         // Ensure that the new instance has access to the store
-        await confirmBalances();
+        await asserts.assertTokenBalances(instance, tokenBalances);
 
         // Carry out the upgrade
         await oldInstance.preUpgrade(instance.address, {
@@ -300,30 +269,25 @@ contract('ERC777Token', accounts => {
         });
 
         // Ensure the new contract can carry out transfers
-        await confirmBalances();
+        await asserts.assertTokenBalances(instance, tokenBalances);
         await instance.send(accounts[1], granularity, "", {
             from: accounts[0]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[1] = expectedBalances[1].add(granularity);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(granularity);
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(granularity);
+        await asserts.assertTokenBalances(instance, tokenBalances);
     });
 
     it('cannot be accessed by an old contract', async function() {
-        try {
-            await oldInstance.send(accounts[1], granularity, "", {
-                from: accounts[0]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await truffleAssert.reverts(
+                oldInstance.send(accounts[1], granularity, '', {
+                    from: accounts[0]
+                }));
     });
 
     it('can upgrade again', async function() {
         oldInstance = instance;
-        instance = await ERC777Token.new(3, 'Test token', 'TST', granularity, initialSupply, await oldInstance.store(), {
+        instance = await ERC777Token.new(3, 'Test token', 'TST', granularity, initialSupply, [], await oldInstance.store(), {
             from: accounts[2],
             gas: 10000000
         });
@@ -343,31 +307,27 @@ contract('ERC777Token', accounts => {
         });
 
         // Ensure the new contract can carry out transfers
-        await confirmBalances();
+        await asserts.assertTokenBalances(instance, tokenBalances);
         await instance.send(accounts[1], granularity, "", {
             from: accounts[0]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity);
-        expectedBalances[1] = expectedBalances[1].add(granularity);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(granularity);
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(granularity);
+        await asserts.assertTokenBalances(instance, tokenBalances);
     });
 
     it('cannot be upgraded by someone else', async function() {
-        var fakeInstance = await ERC777Token.new(4, 'Test token', 'TST', granularity, initialSupply, await oldInstance.store(), {
+        var fakeInstance = await ERC777Token.new(4, 'Test token', 'TST', granularity, initialSupply, [], await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
         await fakeInstance.activate({
             from: accounts[1]
         });
-        try {
-            await instance.preUpgrade(fakeInstance.address, {
-                from: accounts[3]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
-        await confirmBalances();
+        await asserts.assertTokenBalances(instance, tokenBalances);
+        await truffleAssert.reverts(
+                instance.preUpgrade(fakeInstance.address, {
+                    from: accounts[3]
+                }));
     });
 });

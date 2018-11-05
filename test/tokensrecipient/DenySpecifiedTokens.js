@@ -18,8 +18,8 @@ contract('DenySpecifiedTokens', accounts => {
         web3.toBigNumber(0),
         web3.toBigNumber(0)
     ];
-    const initialSupply = web3.toBigNumber('1000000000000000000000');
     const granularity = web3.toBigNumber('10000000000000000');
+    const initialSupply = granularity.mul('10000000');
 
     // Helper to confirm that balances are as expected
     async function confirmBalances() {
@@ -32,7 +32,7 @@ contract('DenySpecifiedTokens', accounts => {
 
     it('sets up', async function() {
         erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
             from: accounts[0],
             gas: 10000000
         });
@@ -51,7 +51,7 @@ contract('DenySpecifiedTokens', accounts => {
 
     it('denies transfers accordingly', async function() {
         // Transfer 100*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        await erc777Instance.send(accounts[1], granularity.mul(100), '', {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
@@ -59,12 +59,12 @@ contract('DenySpecifiedTokens', accounts => {
         await confirmBalances();
 
         // Register the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensRecipient"), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensRecipient'), instance.address, {
             from: accounts[1]
         });
 
         // Transfer 100*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        await erc777Instance.send(accounts[1], granularity.mul(100), '', {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
@@ -78,7 +78,7 @@ contract('DenySpecifiedTokens', accounts => {
 
         // Attempt to transfer tokens to accounts[1] - should fail
         try {
-            await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+            await erc777Instance.send(accounts[1], granularity.mul(100), '', {
                 from: accounts[0]
             });
             assert.fail();
@@ -92,7 +92,7 @@ contract('DenySpecifiedTokens', accounts => {
         });
 
         // Transfer 100*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        await erc777Instance.send(accounts[1], granularity.mul(100), '', {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
@@ -100,12 +100,12 @@ contract('DenySpecifiedTokens', accounts => {
         await confirmBalances();
 
         // Unregister the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensRecipient"), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensRecipient'), 0, {
             from: accounts[1]
         });
 
         // Transfer 100*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        await erc777Instance.send(accounts[1], granularity.mul(100), '', {
             from: accounts[0]
         });
         expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));

@@ -1,51 +1,42 @@
 'use strict';
 
-const assertRevert = require('../helpers/assertRevert.js');
+const asserts = require('../helpers/asserts.js');
+const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const FixedPriceSeller = artifacts.require('FixedPriceSeller');
-
-const sha3 = require('solidity-sha3').default;
 
 contract('FixedPriceSeller', accounts => {
     var erc777Instance;
     var operator;
 
-    let expectedBalances = [
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0)
-    ];
-    const initialSupply = web3.toBigNumber('1000000000000000000000');
     const granularity = web3.toBigNumber('10000000000000000');
+    const initialSupply = granularity.mul('10000000');
 
-    // Helper to confirm that balances are as expected
-    async function confirmBalances() {
-        for (var i = 0; i < expectedBalances.length; i++) {
-            assert.equal((await erc777Instance.balanceOf(accounts[i])).toString(10), expectedBalances[i].toString(10), 'Balance of account ' + i + ' is incorrect');
-        }
-        // Also confirm total supply
-        assert.equal((await erc777Instance.totalSupply()).toString(), expectedBalances.reduce((a, b) => a.add(b), web3.toBigNumber('0')).toString(), 'Total supply is incorrect');
-    }
+    let tokenBalances = {};
+    tokenBalances[accounts[0]] = web3.toBigNumber(0);
+    tokenBalances[accounts[1]] = web3.toBigNumber(0);
+    tokenBalances[accounts[2]] = web3.toBigNumber(0);
 
     it('sets up', async function() {
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
             from: accounts[0],
             gas: 10000000
         });
         await erc777Instance.activate({
             from: accounts[0]
         });
-        expectedBalances[0] = initialSupply.mul(1);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].add(initialSupply);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // accounts[1] is our test source address so send it some tokens
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        const amount = granularity.mul(100);
+        await erc777Instance.send(accounts[1], amount, '', {
             from: accounts[0]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
-        expectedBalances[1] = expectedBalances[1].add(granularity.mul(100));
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(amount);
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
     });
 
     it('creates the operator contract', async function() {
@@ -68,16 +59,16 @@ contract('FixedPriceSeller', accounts => {
     it('sells tokens', async function() {
         const accounts1OldBalance = await web3.eth.getBalance(accounts[1]);
 
-        const tokens = granularity.mul(5);
+        const amount = granularity.mul(5);
         // value is 1 wei per token
-        const value = web3.toWei(tokens.toString(), 'wei');
+        const value = web3.toWei(amount.toString(), 'wei');
         await operator.sell(erc777Instance.address, accounts[1], {
             from: accounts[2],
             value: value
         });
-        expectedBalances[1] = expectedBalances[1].sub(tokens);
-        expectedBalances[2] = expectedBalances[2].add(tokens);
-        await confirmBalances();
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         const accounts1NewBalance = await web3.eth.getBalance(accounts[1]);
         const accounts1ExpectedBalance = accounts1OldBalance.plus(value);
@@ -89,17 +80,13 @@ contract('FixedPriceSeller', accounts => {
 			from: accounts[1]
 		});
 
-        const tokens = granularity.mul(5);
-        const value = web3.toWei(tokens.toString(), 'wei');
-        try {
-            await operator.sell(erc777Instance.address, accounts[1], {
-                from: accounts[2],
-                value: value
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error, 'not for sale');
-        }
+        const amount = granularity.mul(5);
+        const value = web3.toWei(amount.toString(), 'wei');
+        await truffleAssert.reverts(
+                operator.sell(erc777Instance.address, accounts[1], {
+                    from: accounts[2],
+                    value: value
+                }), 'not for sale');
 
         await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
 			from: accounts[1]
@@ -107,15 +94,10 @@ contract('FixedPriceSeller', accounts => {
     });
 
     it('does not sell when not paid', async function() {
-        // Transfer tokens as accounts[1] from accounts[1] to accounts[3]
-        try {
-            await operator.sell(erc777Instance.address, accounts[1], {
-                from: accounts[2],
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error, 'not enough ether paid');
-        }
+        await truffleAssert.reverts(
+                operator.sell(erc777Instance.address, accounts[1], {
+                    from: accounts[2]
+                }), 'not enough ether paid');
     });
 
     it('does not sell when incorrect value passed', async function() {
@@ -123,18 +105,13 @@ contract('FixedPriceSeller', accounts => {
 			from: accounts[1]
 		});
         // Transfer 2.5 tokens as accounts[1] from accounts[1] to accounts[3]
-        const tokens = granularity.mul(5);
         // value is not enough...
         const value = web3.toWei(1, 'wei');
-        try {
-            await operator.sell(erc777Instance.address, accounts[1], {
-                from: accounts[2],
-                value: value
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error, 'not enough ether paid');
-        }
+        await truffleAssert.reverts(
+                operator.sell(erc777Instance.address, accounts[1], {
+                    from: accounts[2],
+                    value: value
+                }), 'not enough ether paid');
         await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
 			from: accounts[1]
 		});
@@ -149,18 +126,13 @@ contract('FixedPriceSeller', accounts => {
 
     it('does not work when de-registered', async function() {
         // Transfer tokens as accounts[2] from accounts[1] to accounts[3]
-        const tokens = granularity.mul(5);
         // value is 1 wei per token
-        const value = web3.toWei(tokens.toString(), 'wei');
-
-        try {
-            await operator.sell(erc777Instance.address, accounts[1], {
-                from: accounts[2],
-                value: value
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error, 'not allowed to send');
-        }
+        const amount = granularity.mul(5);
+        const value = web3.toWei(amount.toString(), 'wei');
+        await truffleAssert.reverts(
+                operator.sell(erc777Instance.address, accounts[1], {
+                    from: accounts[2],
+                    value: value
+                }), 'not allowed to send');
     });
 });
