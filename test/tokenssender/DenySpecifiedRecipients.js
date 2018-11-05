@@ -1,6 +1,7 @@
 'use strict';
 
-const assertRevert = require('../helpers/assertRevert.js');
+const asserts = require('../helpers/asserts.js');
+const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const DenySpecifiedRecipients = artifacts.require('DenySpecifiedRecipients');
@@ -11,44 +12,36 @@ contract('DenySpecifiedRecipients', accounts => {
     var erc820Instance;
     var instance;
 
-    let expectedBalances = [
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0)
-    ];
-    const initialSupply = web3.toBigNumber('1000000000000000000000');
     const granularity = web3.toBigNumber('10000000000000000');
+    const initialSupply = granularity.mul('10000000');
 
-    // Helper to confirm that balances are as expected
-    async function confirmBalances() {
-        for (var i = 0; i < expectedBalances.length; i++) {
-            assert.equal((await erc777Instance.balanceOf(accounts[i])).toString(10), expectedBalances[i].toString(10), 'Balance of account ' + i + ' is incorrect');
-        }
-        // Also confirm total supply
-        assert.equal((await erc777Instance.totalSupply()).toString(), expectedBalances.reduce((a, b) => a.add(b), web3.toBigNumber('0')).toString(), 'Total supply is incorrect');
-    }
+    let tokenBalances = {};
+    tokenBalances[accounts[0]] = web3.toBigNumber(0);
+    tokenBalances[accounts[1]] = web3.toBigNumber(0);
+    tokenBalances[accounts[2]] = web3.toBigNumber(0);
+    tokenBalances[accounts[3]] = web3.toBigNumber(0);
 
     it('sets up', async function() {
         erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
             from: accounts[0],
             gas: 10000000
         });
         await erc777Instance.activate({
             from: accounts[0]
         });
-        expectedBalances[0] = initialSupply.mul(1);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].add(initialSupply);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
+
 
         // accounts[1] is our test source address so send it some tokens
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        const amount = granularity.mul(100);
+        await erc777Instance.send(accounts[1], granularity.mul(100), '', {
             from: accounts[0]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
-        expectedBalances[1] = expectedBalances[1].add(granularity.mul(100));
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(amount);
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
     });
 
     it('creates the sender contract', async function() {
@@ -59,17 +52,18 @@ contract('DenySpecifiedRecipients', accounts => {
 
     it('handles recipients accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
         // Transfer tokens to accounts[2]
-        await erc777Instance.send(accounts[2], granularity.mul(5), "", {
+        const amount = granularity.mul(5);
+        await erc777Instance.send(accounts[2], amount, '', {
             from: accounts[1]
         });
-        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(5));
-        expectedBalances[2] = expectedBalances[2].add(granularity.mul(5));
-        await confirmBalances();
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // Set up a recipient for accounts[2]
         await instance.setRecipient(accounts[2], {
@@ -78,22 +72,18 @@ contract('DenySpecifiedRecipients', accounts => {
         assert.equal(await instance.getRecipient(accounts[1], accounts[2]), true);
 
         // Attempt to tranfer tokens to accounts[2] - should fail
-        try {
-            await erc777Instance.send(accounts[2], granularity.mul(5), "", {
-                from: accounts[1]
-            });
-            assert.fail();
-        } catch (error) {
-            assertRevert(error);
-        }
+        await truffleAssert.reverts(
+                erc777Instance.send(accounts[2], amount, '', {
+                    from: accounts[1]
+                }), 'transfers to that recipient are blocked');
 
         // Transfer tokens to accounts[3]
-        await erc777Instance.send(accounts[3], granularity.mul(5), "", {
+        await erc777Instance.send(accounts[3], granularity.mul(5), '', {
             from: accounts[1]
         });
-        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(5));
-        expectedBalances[3] = expectedBalances[3].add(granularity.mul(5));
-        await confirmBalances();
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[3]] = tokenBalances[accounts[3]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
         
         // Clear recipient for accounts[2]
         await instance.clearRecipient(accounts[2], {
@@ -102,15 +92,15 @@ contract('DenySpecifiedRecipients', accounts => {
         assert.equal(await instance.getRecipient(accounts[1], accounts[2]), false);
 
         // Transfer tokens to accounts[2]
-        await erc777Instance.send(accounts[2], granularity.mul(5), "", {
+        await erc777Instance.send(accounts[2], amount, '', {
             from: accounts[1]
         });
-        expectedBalances[1] = expectedBalances[1].sub(granularity.mul(5));
-        expectedBalances[2] = expectedBalances[2].add(granularity.mul(5));
-        await confirmBalances();
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensSender"), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), 0, {
             from: accounts[1]
         });
     });

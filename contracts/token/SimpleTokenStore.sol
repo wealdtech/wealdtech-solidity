@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,7 @@ contract SimpleTokenStore is ITokenStore {
     mapping(address=>mapping(address=>uint256)) internal allowances;
 
     // Flag to enable/disable minting
-    bool public mintingAllowed;
+    bool public mintingEnabled;
 
     // Permissions for each operation
     bytes32 internal constant PERM_MINT = keccak256("token storage: mint");
@@ -74,7 +74,7 @@ contract SimpleTokenStore is ITokenStore {
      *      This is usually called by a token contract.
      */
     constructor() public {
-        mintingAllowed = true;
+        mintingEnabled = true;
     }
 
     /**
@@ -89,14 +89,14 @@ contract SimpleTokenStore is ITokenStore {
      * @dev Permanently disable minting of tokens.
      */
     function disableMinting() public ifPermitted(msg.sender, PERM_DISBALE_MINTING) {
-        mintingAllowed = false;
+        mintingEnabled = false;
     }
 
     /**
      * @dev Mint tokens and allocate them to a recipient.
      */
     function mint(address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_MINT) {
-        require(mintingAllowed);
+        require(mintingEnabled, "minting disabled");
         balances[_recipient] = balances[_recipient].add(_amount);
         totalSupply = totalSupply.add(_amount);
     }
@@ -136,9 +136,6 @@ contract SimpleTokenStore is ITokenStore {
      */
     function setAllowance(address _owner, address _recipient, uint256 _amount) public ifPermitted(msg.sender, PERM_SET_ALLOWANCE) {
         require((_amount == 0) || (allowances[_owner][_recipient] == 0));
-
-        // Ensure the sender is not allocating more funds than they have.
-        require(_amount <= balances[_owner]);
 
         allowances[_owner][_recipient] = _amount;
     }

@@ -10,9 +10,9 @@ import '../token/IERC777.sol';
  *        An ERC777 token operator contract that releases a limited number of
  *        tokens for a given (token, holder, transferer).
  *        
- *        To use this contract a token holder should first call setExpiry() to
- *        set the timestamp of the lockup expiry, then call setAllowance() for
- *        each recipient.
+ *        To use this contract a token holder should first call setAllowance()
+ *        to set the allowance for a given accoutn.  That account will then be
+ *        able to transfer away that number of tokens.
  *
  *        State of this contract: stable; development complete but the code is
  *        unaudited. and may contain bugs and/or security holes. Use at your own

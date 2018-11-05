@@ -69,10 +69,9 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
         emit SupplementRemoved(msg.sender);
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public payable {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
         (operator);
 
-        require(msg.value == 0, "ether not accepted");
         require(accounts[holder] != 0, "target address not set");
 
         // Ignore tokens already being sent to the target account

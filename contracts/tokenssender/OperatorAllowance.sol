@@ -50,17 +50,15 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
         return allowances[_holder][_operator][_token];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public payable {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
         (recipient, data, operatorData);
-
-        require(msg.value == 0, "ether not accepted");
 
         if (operator == holder) {
             // This is a user send not an operator send; ignore
             return;
         }
 
-        require (allowances[holder][operator][msg.sender] >= amount);
+        require (allowances[holder][operator][msg.sender] >= amount, "allowance too low");
         allowances[holder][operator][msg.sender] = allowances[holder][operator][msg.sender].sub(amount);
     }
 }

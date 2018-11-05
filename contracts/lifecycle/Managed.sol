@@ -196,7 +196,7 @@ contract Managed is Permissioned {
      *        unpaused.
      */
     function setPausedUntil(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
-        require(_pausedUntil > block.timestamp);
+        require(_pausedUntil > block.timestamp, "cannot pause to the past");
         pausedUntil = _pausedUntil;
         emit PausedUntil(pausedUntil);
     }
@@ -234,7 +234,7 @@ contract Managed is Permissioned {
      *      This carries out the upgrade to the new contract.
      */
     function upgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
-        require(supercededBy != 0);
+        require(supercededBy != 0, "no superceded address");
         // Mark this contract as upgraded
         currentState = State.Upgraded;
         emit StateChange(State.Upgraded);

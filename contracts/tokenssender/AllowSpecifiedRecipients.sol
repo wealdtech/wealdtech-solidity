@@ -52,10 +52,9 @@ contract AllowSpecifiedRecipients is ERC777TokensSender, ERC820Implementer {
         return recipients[_holder][_recipient];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public payable {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
         (operator, value, data, operatorData);
 
-        require(msg.value == 0, "ether not accepted");
         require(recipients[holder][recipient], "not allowed to send to that recipient");
     }
 }

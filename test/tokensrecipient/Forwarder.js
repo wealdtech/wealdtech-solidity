@@ -1,6 +1,7 @@
 'use strict';
 
-const assertRevert = require('../helpers/assertRevert.js');
+const asserts = require('../helpers/asserts.js');
+const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const Forwarder = artifacts.require('Forwarder');
@@ -11,36 +12,25 @@ contract('Forwarder', accounts => {
     var erc820Instance;
     var instance;
 
-    let expectedBalances = [
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0),
-        web3.toBigNumber(0)
-    ];
-    const initialSupply = web3.toBigNumber('1000000000000000000000');
     const granularity = web3.toBigNumber('10000000000000000');
+    const initialSupply = granularity.mul('10000000');
 
-    // Helper to confirm that balances are as expected
-    async function confirmBalances() {
-        for (var i = 0; i < expectedBalances.length; i++) {
-            assert.equal((await erc777Instance.balanceOf(accounts[i])).toString(10), expectedBalances[i].toString(10), 'Balance of account ' + i + ' is incorrect');
-        }
-        // Also confirm total supply
-        assert.equal((await erc777Instance.totalSupply()).toString(), expectedBalances.reduce((a, b) => a.add(b), web3.toBigNumber('0')).toString(), 'Total supply is incorrect');
-    }
+    let tokenBalances = {};
+    tokenBalances[accounts[0]] = web3.toBigNumber(0);
+    tokenBalances[accounts[1]] = web3.toBigNumber(0);
+    tokenBalances[accounts[2]] = web3.toBigNumber(0);
 
     it('sets up', async function() {
         erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, 0, {
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
             from: accounts[0],
             gas: 10000000
         });
         await erc777Instance.activate({
             from: accounts[0]
         });
-        expectedBalances[0] = initialSupply.mul(1);
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].add(initialSupply);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
     });
 
     it('creates the recipient contract', async function() {
@@ -51,28 +41,29 @@ contract('Forwarder', accounts => {
 
     it('forwards tokens accordingly', async function() {
         // Register the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensRecipient"), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensRecipient'), instance.address, {
             from: accounts[1]
         });
 
-        // Set up forwarding from accounts[1] to accounts[4]
-        await instance.setForwarder(accounts[4], {
+        // Set up forwarding from accounts[1] to accounts[2]
+        await instance.setForwarder(accounts[2], {
             from: accounts[1]
         });
-        assert.equal(await instance.getForwarder(accounts[1]), accounts[4]);
+        assert.equal(await instance.getForwarder(accounts[1]), accounts[2]);
 
         // Set up the recipient contract as an operator for accounts[1]
         await erc777Instance.authorizeOperator(instance.address, {
             from: accounts[1]
         });
 
-        // Transfer 100*granularity tokens from accounts[0] to accounts[1]
-        await erc777Instance.send(accounts[1], granularity.mul(100), "", {
+        // Transfer tokens from accounts[0] to accounts[1]
+        const amount = granularity.mul(10);
+        await erc777Instance.send(accounts[1], amount, '', {
             from: accounts[0]
         });
-        expectedBalances[0] = expectedBalances[0].sub(granularity.mul(100));
-        expectedBalances[4] = expectedBalances[4].add(granularity.mul(100));
-        await confirmBalances();
+        tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // Unregister the operator
         await erc777Instance.revokeOperator(instance.address, {
@@ -80,7 +71,7 @@ contract('Forwarder', accounts => {
         });
 
         // Unregister the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3("ERC777TokensRecipient"), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensRecipient'), 0, {
             from: accounts[1]
         });
     });
