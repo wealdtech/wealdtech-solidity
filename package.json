@@ -4,10 +4,11 @@
   "version": "0.9.8",
   "devDependencies": {
     "mocha": "*",
-    "solidity-sha3": "^0.4.1"
+    "solidity-sha3": "^0.4.1",
+    "merkletreejs": "^0.0.18"
   },
   "dependencies": {
-    "ens": "0.0.1",
+    "ens": "^0.0.1",
     "erc820": "^0.0.22",
     "truffle": "^4.1.11",
     "truffle-assertions": "^0.6.3",
