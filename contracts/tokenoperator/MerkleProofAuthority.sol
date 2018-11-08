@@ -5,9 +5,9 @@ import '../token/IERC777.sol';
 
 
 /**
- * @title SignatureAuthority
+ * @title MerkleProofAuthority
  *
- *        An ERC777 token operator contract that requires a signature from the
+ *        An ERC777 token operator contract that requires a merkle proof from
  *        holder to allow the transfer to take place.
  *
  *        State of this contract: stable; development complete but the code is
@@ -19,14 +19,34 @@ import '../token/IERC777.sol';
  *         some of your ERC-777 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract SignatureAuthority {
+contract MerkleProofAuthority {
     using SafeMath for uint256;
+
+    // Mapping is token=>holder=>merkle root
+    mapping(address=>mapping(address=>bytes32)) private roots;
 
     // Mapping is hash=>used, to stop replays
     mapping(bytes32=>bool) private usedHashes;
 
+    // Event emitted when a root is set
+    event Root(address token, address holder, bytes32 root);
+
     /**
-     * send tokens from one account to another using the signature as the authority.
+     * Set the merkle root for a holder of a token.
+     * @param _token the address of the token contract
+     * @param _root the root of the merkle tree
+     */
+    function setRoot(address _token, bytes32 _root) public {
+        roots[_token][msg.sender] = _root;
+        emit Root(_token, msg.sender, _root); 
+    }
+
+    function getRoot(address _token, address _holder) public view returns (bytes32) {
+        return roots[_token][_holder];
+    }
+
+    /**
+     * send tokens from one account to another using a merkle proof as the authority.
      * The signature is created by the holder and signs a hash of the
      * (_token, _holder, _recipient, _amount, _nonce) tuple as created by hashForSend().
      *
@@ -36,18 +56,14 @@ contract SignatureAuthority {
      * @param _amount the number of tokens to send
      * @param _data the data field for the operatorSend operation, supplied by the authority
      * @param _nonce a unique field for a given (_token, _holder, _recipient, _amount, _nonce) supplied by the authority
-     * @param _signature the signature supplied by the authority
+     * @param _path the path of the leaf through the merkle tree to the root
+     * @param _proof the other hashes that form the merkle tree to the root
      */
-    function send(address _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, bytes _signature) public {
-        // Ensure that signature contains the correct number of bytes
-        require(_signature.length == 65, "length of signature incorrect");
-
+    function send(address _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, uint256 _path, bytes32[] _proof) public {
         bytes32 hash = hashForSend(_token, _holder, _recipient, _amount, _data, _nonce);
         require(!usedHashes[hash], "tokens already sent");
 
-        address signatory = signer(hash, _signature);
-        require(signatory != 0, "signatory is invalid");
-        require(signatory == _holder, "signatory is not the holder");
+        require(prove(hash, _path, _proof, roots[_token][_holder]), "merkle proof invalid");
         usedHashes[hash] = true;
 
         IERC777(_token).operatorSend(_holder, _recipient, _amount, _data, "");
@@ -68,29 +84,22 @@ contract SignatureAuthority {
     }
 
     /**
-     * This obtains the signer of a hash given its signature.
-     * Note that a returned address of 0 means that the signature is invalid,
-     * and should be treated as such.
+     * Prove that a given leaf is part of a merkle tree
+     * @param _leaf the leaf to prove
+     * @param _path the path to follow
+     * @param _proof the intermediate nodes
+     * @param _root the root
      */
-    function signer(bytes32 _hash, bytes _signature) private pure returns (address) {
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        assembly {
-            r := mload(add(_signature, 32))
-            s := mload(add(_signature, 64))
-            v := and(mload(add(_signature, 65)), 255)
+    function prove(bytes32 _leaf, uint256 _path, bytes32[] _proof, bytes32 _root) private returns (bool) {
+        bytes32 hash = _leaf;
+        for (uint256 i = 0; i < _proof.length; i++) {
+            if ((_path & 0x01) == 1) {
+                hash = keccak256(abi.encodePacked(hash, _proof[i]));
+            } else {
+                hash = keccak256(abi.encodePacked(_proof[i], hash));
+            }
+            _path = _path >> 1;
         }
-
-        if (v < 27) {
-            v += 27;
-        }
-
-        require(v == 27 || v == 28, "signature is invavlid");
-
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHash = keccak256(abi.encodePacked(prefix, _hash));
-        return ecrecover(prefixedHash, v, r, s);
+        return (hash == _root);
     }
 }
