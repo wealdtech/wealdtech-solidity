@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import '../math/SafeMath.sol';
 import '../token/IERC777.sol';
 
 
@@ -25,8 +24,6 @@ import '../token/IERC777.sol';
  *         development of these and future contracts
  */
 contract FixedTimeRelease {
-    using SafeMath for uint256;
-
     // Mapping is token=>holder=>release timestamp
     mapping(address=>mapping(address=>uint256)) private releaseTimestamps;
 
@@ -37,7 +34,7 @@ contract FixedTimeRelease {
      * @param _token the address of the token contract
      * @param _timestamp the unix timestamp at which the tokens are released
      */
-    function setReleaseTimestamp(address _token, uint256 _timestamp) public {
+    function setReleaseTimestamp(IERC777 _token, uint256 _timestamp) public {
         releaseTimestamps[_token][msg.sender] = _timestamp;
         emit ReleaseTimestamp(_token, msg.sender, _timestamp);
     }
@@ -48,16 +45,16 @@ contract FixedTimeRelease {
      * @param _holder the address of the holder
      * @return the unix timestamp at which the tokens are released
      */
-    function getReleaseTimestamp(address _token, address _holder) public view returns (uint256) {
+    function getReleaseTimestamp(IERC777 _token, address _holder) public view returns (uint256) {
         return releaseTimestamps[_token][_holder];
     }
 
-    function send(address _token, address _holder, address _recipient, uint256 _amount) public {
+    function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
         confirmAllowed(_token, _holder);
-        IERC777(_token).operatorSend(_holder, _recipient, _amount, "", "");
+        _token.operatorSend(_holder, _recipient, _amount, "", "");
     }
 
-    function confirmAllowed(address _token, address _holder) internal view {
+    function confirmAllowed(IERC777 _token, address _holder) internal view {
         require(releaseTimestamps[_token][_holder] != 0, "no release time set");
         require(releaseTimestamps[_token][_holder] <= now, "not yet released");
     }

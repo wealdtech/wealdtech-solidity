@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import '../math/SafeMath.sol';
 import '../token/IERC777.sol';
 import './FixedTimeRelease.sol';
 import './FixedAllowance.sol';
@@ -25,20 +24,18 @@ import './FixedAllowance.sol';
  *         development of these and future contracts
  */
 contract FixedTimeLockup is FixedTimeRelease, FixedAllowance {
-    using SafeMath for uint256;
-
-    function send(address _token, address _holder, address _recipient, uint256 _amount) public {
+    function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
         confirmAllowed(_token, _holder, msg.sender, _amount);
         updateState(_token, _holder, msg.sender, _amount);
-        IERC777(_token).operatorSend(_holder, _recipient, _amount, "", "");
+        _token.operatorSend(_holder, _recipient, _amount, "", "");
     }
 
-    function confirmAllowed(address _token, address _holder, address _transferer, uint256 _amount) internal view {
+    function confirmAllowed(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal view {
         FixedTimeRelease.confirmAllowed(_token, _holder);
         FixedAllowance.confirmAllowed(_token, _holder, _transferer, _amount);
     }
 
-    function updateState(address _token, address _holder, address _transferer, uint256 _amount) internal {
+    function updateState(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal {
         FixedAllowance.updateState(_token, _holder, _transferer, _amount);
     }
 }

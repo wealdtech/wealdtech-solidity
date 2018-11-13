@@ -10,8 +10,8 @@ contract('FixedPriceSeller', accounts => {
     var erc777Instance;
     var operator;
 
-    const granularity = web3.toBigNumber('10000000000000000');
-    const initialSupply = granularity.mul('10000000');
+    const granularity = web3.toBigNumber('1000000000000000000');
+    const initialSupply = granularity.mul('1000000');
 
     let tokenBalances = {};
     tokenBalances[accounts[0]] = web3.toBigNumber(0);
@@ -46,9 +46,13 @@ contract('FixedPriceSeller', accounts => {
     });
 
     it('sets up the operator for accounts[1]', async function() {
-        await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+        await operator.setPricePerToken(erc777Instance.address, web3.toBigNumber('500000000000000000'), {
 			from: accounts[1]
 		});
+
+        // Set price to 1 token for 0.5 Ether
+        const pricePerToken = await operator.getPricePerToken(erc777Instance.address, accounts[1]);
+        assert.equal(pricePerToken.toString(), '500000000000000000');
 
         await erc777Instance.authorizeOperator(operator.address, {
             from: accounts[1]
@@ -59,10 +63,10 @@ contract('FixedPriceSeller', accounts => {
     it('sells tokens', async function() {
         const accounts1OldBalance = await web3.eth.getBalance(accounts[1]);
 
-        const amount = granularity.mul(5);
-        // value is 1 wei per token
-        const value = web3.toWei(amount.toString(), 'wei');
-        await operator.sell(erc777Instance.address, accounts[1], {
+        // Buy 10 tokens for 5 Ether
+        const amount = web3.toBigNumber('10000000000000000000');
+        const value = web3.toWei(5, 'ether');
+        await operator.send(erc777Instance.address, accounts[1], {
             from: accounts[2],
             value: value
         });
@@ -75,44 +79,44 @@ contract('FixedPriceSeller', accounts => {
         assert.equal(accounts1NewBalance.toString(), accounts1ExpectedBalance.toString());
     });
 
-    it('does not sell when a cost is not set', async function() {
-        await operator.setCostPerToken(erc777Instance.address, 0, {
+    it('does not sell when a price is not set', async function() {
+        await operator.setPricePerToken(erc777Instance.address, 0, {
 			from: accounts[1]
 		});
 
         const amount = granularity.mul(5);
         const value = web3.toWei(amount.toString(), 'wei');
         await truffleAssert.reverts(
-                operator.sell(erc777Instance.address, accounts[1], {
+                operator.send(erc777Instance.address, accounts[1], {
                     from: accounts[2],
                     value: value
                 }), 'not for sale');
 
-        await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+        await operator.setPricePerToken(erc777Instance.address, web3.toWei(1, 'ether'), {
 			from: accounts[1]
 		});
     });
 
     it('does not sell when not paid', async function() {
         await truffleAssert.reverts(
-                operator.sell(erc777Instance.address, accounts[1], {
+                operator.send(erc777Instance.address, accounts[1], {
                     from: accounts[2]
                 }), 'not enough ether paid');
     });
 
     it('does not sell when incorrect value passed', async function() {
-        await operator.setCostPerToken(erc777Instance.address, web3.toWei(2, 'wei'), {
+        await operator.setPricePerToken(erc777Instance.address, web3.toWei(2, 'ether'), {
 			from: accounts[1]
 		});
         // Transfer 2.5 tokens as accounts[1] from accounts[1] to accounts[3]
         // value is not enough...
-        const value = web3.toWei(1, 'wei');
+        const value = web3.toWei(1, 'ether');
         await truffleAssert.reverts(
-                operator.sell(erc777Instance.address, accounts[1], {
+                operator.send(erc777Instance.address, accounts[1], {
                     from: accounts[2],
                     value: value
                 }), 'not enough ether paid');
-        await operator.setCostPerToken(erc777Instance.address, web3.toWei(1, 'wei'), {
+        await operator.setPricePerToken(erc777Instance.address, web3.toWei(1, 'ether'), {
 			from: accounts[1]
 		});
     });
@@ -130,7 +134,7 @@ contract('FixedPriceSeller', accounts => {
         const amount = granularity.mul(5);
         const value = web3.toWei(amount.toString(), 'wei');
         await truffleAssert.reverts(
-                operator.sell(erc777Instance.address, accounts[1], {
+                operator.send(erc777Instance.address, accounts[1], {
                     from: accounts[2],
                     value: value
                 }), 'not allowed to send');

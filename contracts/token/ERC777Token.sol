@@ -12,9 +12,8 @@ import './ERC777TokensSender.sol';
 
 /**
  * @title ERC777Token
- *        ERC777Token is an ERC-777 compliant token implementation with
- *        significantly upgraded functionality including a separate token store,
- *        bulk sends, and easy upgrading.
+ *        ERC777Token is an ERC-777 compliant token implementation with a
+ *        separate token store and easy upgrading.
  *
  *        ERC777 tokens have the same base divisibility, with every token
  *        broken in to 10^18 divisions.  That is, every token can be subdivided
@@ -36,10 +35,6 @@ import './ERC777TokensSender.sol';
  *        It is possible to upgrade the token logic to a new contract
  *        relatively cheaply.  The functions for upgrading are built in to the
  *        contract to provide a well-defined path.
- *
- *        Transfers of tokens from a single source to multiple recipients can
- *        be carried out in a gas-efficient manner, often halving the gas cost
- *        for large bulk transfers.
  *
  *        State of this contract: stable; development complete but the code is
  *        unaudited. and may contain bugs and/or security holes. Use at your own
@@ -284,20 +279,6 @@ contract ERC777Token is IERC777, ERC820Client, ERC820ImplementerInterface, Manag
     }
 
     /**
-     * send multiple amounts of tokens to given addresses.
-     * @param _to the addresses to which to send tokens
-     * @param _amount the numbers of tokens to send.  Must be a multiple of granularity
-     * @param _data arbitrary data provided by the holder
-     */
-    function bulkSend(address[] _to, uint256[] _amount, bytes _data) public
-      ifInState(State.Active)
-    {
-        for (uint256 i = 0; i < _to.length; i++) {
-            send(_to[i], _amount[i], _data);
-        }
-    }
-
-    /**
      * @dev authorize a third-party to transfer tokens on behalf of a token
      *      holder.
      * @param _operator the address of the third party
@@ -354,22 +335,6 @@ contract ERC777Token is IERC777, ERC820Client, ERC820ImplementerInterface, Manag
       ifInState(State.Active)
     {
         _send(_from, _to, _amount, _data, msg.sender, _operatorData);
-    }
-
-    /**
-     * send multiple amounts of tokens to a given address on behalf of another address.
-     * @param _from the address from which to send tokens
-     * @param _to the addresses to which to send tokens
-     * @param _amount the numbers of tokens to send.  Must be a multiple of granularity
-     * @param _data arbitrary data provided by the holder
-     * @param _operatorData arbitrary data provided by the operator
-     */
-    function operatorBulkSend(address _from, address[] _to, uint256[] _amount, bytes _data, bytes _operatorData) public
-      ifInState(State.Active)
-    {
-        for (uint256 i = 0; i < _to.length; i++) {
-            operatorSend(_from, _to[i], _amount[i], _data, _operatorData);
-        }
     }
 
     //

@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import '../math/SafeMath.sol';
 import '../token/IERC777.sol';
 
 
@@ -20,8 +19,6 @@ import '../token/IERC777.sol';
  *         development of these and future contracts
  */
 contract SignatureAuthority {
-    using SafeMath for uint256;
-
     // Mapping is hash=>used, to stop replays
     mapping(bytes32=>bool) private usedHashes;
 
@@ -38,7 +35,7 @@ contract SignatureAuthority {
      * @param _nonce a unique field for a given (_token, _holder, _recipient, _amount, _nonce) supplied by the authority
      * @param _signature the signature supplied by the authority
      */
-    function send(address _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, bytes _signature) public {
+    function send(IERC777 _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, bytes _signature) public {
         // Ensure that signature contains the correct number of bytes
         require(_signature.length == 65, "length of signature incorrect");
 
@@ -50,7 +47,7 @@ contract SignatureAuthority {
         require(signatory == _holder, "signatory is not the holder");
         usedHashes[hash] = true;
 
-        IERC777(_token).operatorSend(_holder, _recipient, _amount, _data, "");
+        _token.operatorSend(_holder, _recipient, _amount, _data, "");
     }
 
     /**
@@ -63,7 +60,7 @@ contract SignatureAuthority {
      * @param _data the data field for the operatorSend operation, supplied by the authority
      * @param _nonce a unique field for a given (_token, _holder, _recipient, _amount, _nonce) supplied by the authority
      */
-    function hashForSend(address _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce) public pure returns (bytes32) {
+    function hashForSend(IERC777 _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_token, _holder, _recipient, _amount, _data, _nonce));
     }
 
