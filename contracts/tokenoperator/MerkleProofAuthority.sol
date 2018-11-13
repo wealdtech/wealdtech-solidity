@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-import '../math/SafeMath.sol';
 import '../token/IERC777.sol';
 
 
@@ -20,8 +19,6 @@ import '../token/IERC777.sol';
  *         development of these and future contracts
  */
 contract MerkleProofAuthority {
-    using SafeMath for uint256;
-
     // Mapping is token=>holder=>merkle root
     mapping(address=>mapping(address=>bytes32)) private roots;
 
@@ -59,14 +56,14 @@ contract MerkleProofAuthority {
      * @param _path the path of the leaf through the merkle tree to the root
      * @param _proof the other hashes that form the merkle tree to the root
      */
-    function send(address _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, uint256 _path, bytes32[] _proof) public {
+    function send(IERC777 _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, uint256 _path, bytes32[] _proof) public {
         bytes32 hash = hashForSend(_token, _holder, _recipient, _amount, _data, _nonce);
         require(!usedHashes[hash], "tokens already sent");
 
         require(prove(hash, _path, _proof, roots[_token][_holder]), "merkle proof invalid");
         usedHashes[hash] = true;
 
-        IERC777(_token).operatorSend(_holder, _recipient, _amount, _data, "");
+        _token.operatorSend(_holder, _recipient, _amount, _data, "");
     }
 
     /**
@@ -79,7 +76,7 @@ contract MerkleProofAuthority {
      * @param _data the data field for the operatorSend operation, supplied by the authority
      * @param _nonce a unique field for a given (_token, _holder, _recipient, _amount, _nonce) supplied by the authority
      */
-    function hashForSend(address _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce) public pure returns (bytes32) {
+    function hashForSend(IERC777 _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(_token, _holder, _recipient, _amount, _data, _nonce));
     }
 
@@ -90,7 +87,7 @@ contract MerkleProofAuthority {
      * @param _proof the intermediate nodes
      * @param _root the root
      */
-    function prove(bytes32 _leaf, uint256 _path, bytes32[] _proof, bytes32 _root) private returns (bool) {
+    function prove(bytes32 _leaf, uint256 _path, bytes32[] _proof, bytes32 _root) private pure returns (bool) {
         bytes32 hash = _leaf;
         for (uint256 i = 0; i < _proof.length; i++) {
             if ((_path & 0x01) == 1) {

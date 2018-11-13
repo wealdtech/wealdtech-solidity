@@ -21,38 +21,46 @@ import '../token/IERC777.sol';
 contract FixedPriceSeller {
     using SafeMath for uint256;
 
-    // Mapping is token=>holder=>cost per token
-    mapping(address=>mapping(address=>uint256)) costPerToken;
+    // Mapping is token=>holder=>price per token
+    mapping(address=>mapping(address=>uint256)) pricePerToken;
 
-    event CostPerToken(address token, address holder, uint256 costPerToken);
+    event PricePerToken(address token, address holder, uint256 pricePerToken);
 
-    function setCostPerToken(address _token, uint256 _costPerToken) public {
-        costPerToken[_token][msg.sender] = _costPerToken;
-        emit CostPerToken(_token, msg.sender, _costPerToken);
-    }
-
-    function getCostPerToken(address _token, address _holder) public view returns (uint256) {
-        return costPerToken[_token][_holder];
+    /**
+     * Set the price for each token.  The price is in Wei, so if for example
+     * the price is 1 Ether for 1 token then _pricePerToken would be 10^18.
+     */
+    function setPricePerToken(IERC777 _token, uint256 _pricePerToken) public {
+        pricePerToken[_token][msg.sender] = _pricePerToken;
+        emit PricePerToken(_token, msg.sender, _pricePerToken);
     }
 
     /**
-     * Sell tokens from a holder at their price
+     * Get the price for each token.  The price is in Wei, so if for example
+     * the price is 1 Ether for 1 token this would return 10^18.
      */
-    function sell(address _token, address _holder) public payable {
-        // N.B. need to do this here to avoid div by zero afterwards.
-        require(costPerToken[_token][_holder] != 0, "not for sale");
-        uint256 amount = msg.value.div(costPerToken[_token][_holder]);
+    function getPricePerToken(IERC777 _token, address _holder) public view returns (uint256) {
+        return pricePerToken[_token][_holder];
+    }
+
+    /**
+     * Send tokens from a holder at their price
+     */
+    function send(IERC777 _token, address _holder) public payable {
+        // N.B. need to do this here to avoid div by zero if not for sale
+        require(pricePerToken[_token][_holder] != 0, "not for sale");
+        uint256 amount = msg.value.mul(1000000000000000000).div(pricePerToken[_token][_holder]);
         confirmAllowed(_token, _holder, msg.value, amount);
 
-        IERC777(_token).operatorSend(_holder, msg.sender, amount, "", "");
+        _token.operatorSend(_holder, msg.sender, amount, "", "");
         _holder.transfer(msg.value);
     }
 
-    function confirmAllowed(address _token, address _holder, uint256 _value, uint256 _amount) internal view {
-        // N.B. we do this here as well as in sell() to allow for composition
-        require(costPerToken[_token][_holder] != 0, "not for sale");
-        require(_amount > 0, "not enough ether paid");
-        uint256 value = _amount.mul(costPerToken[_token][_holder]);
+    function confirmAllowed(IERC777 _token, address _holder, uint256 _value, uint256 _amount) internal view {
+        // N.B. we do this here as well as in send() to allow for composition
+        require(pricePerToken[_token][_holder] != 0, "not for sale");
+        require(_amount > _token.granularity(), "not enough ether paid");
+        uint256 value = _amount.mul(pricePerToken[_token][_holder]).div(1000000000000000000);
         require(value == _value, "non-integer number of tokens purchased");
     }
 }
