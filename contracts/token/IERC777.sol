@@ -5,6 +5,8 @@ pragma solidity ^0.4.18;
  * @title IERC777
  *        IERC777 is the interface for ERC777-compliant tokens.
  *        IERC777 is defined at https://github.com/ethereum/EIPs/issues/777
+ *
+ * @author Jim McDonald
  */
 contract IERC777 {
     function name() public constant returns (string);

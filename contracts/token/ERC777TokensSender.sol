@@ -18,6 +18,8 @@ pragma solidity ^0.4.18;
  * @title ERC777TokensSender
  *        ERC777TokensSender is the interface for contracts that handle pre-send
  *        of tokens from ERC777 token contracts
+ *
+ * @author Jim McDonald
  */
 interface ERC777TokensSender {
 
