@@ -35,6 +35,7 @@ contract FixedTimeRelease {
      * @param _timestamp the unix timestamp at which the tokens are released
      */
     function setReleaseTimestamp(IERC777 _token, uint256 _timestamp) public {
+        require(_timestamp >= releaseTimestamps[_token][msg.sender], "cannot bring release time forward");
         releaseTimestamps[_token][msg.sender] = _timestamp;
         emit ReleaseTimestamp(_token, msg.sender, _timestamp);
     }
