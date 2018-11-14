@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
 import 'erc820/contracts/ERC820Client.sol';
-import 'erc820/contracts/ERC820ImplementerInterface.sol';
 import './IERC777.sol';
 import '../lifecycle/Managed.sol';
 import '../math/SafeMath.sol';
+import '../registry/ERC820Implementer.sol';
 import './SimpleTokenStore.sol';
 import './ERC777TokensRecipient.sol';
 import './ERC777TokensSender.sol';
@@ -41,11 +41,8 @@ import './ERC777TokensSender.sol';
  *        risk.
  *
  * @author Jim McDonald
- * @notice If you use this contract please consider donating some Ether or
- *         some of your EIP-777 token to wsl.wealdtech.eth to support continued
- *         development of these and future contracts
  */
-contract ERC777Token is IERC777, ERC820Client, ERC820ImplementerInterface, Managed {
+contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
     using SafeMath for uint256;
 
     // Definition for the token
@@ -123,17 +120,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820ImplementerInterface, Manag
             defaultOperatorsMap[defaultOperators[i]] = true;
         }
 
-        setInterfaceImplementation("ERC777Token", address(this));
-    }
-
-    function canImplementInterfaceForAddress(bytes32 interfaceHash, address addr) view public returns(bytes32) {
-        // keccak256("ERC777Token") == 0xac7fbab5f54a3ca8194167523c6753bfeb96a445279294b6125b68cce2177054
-        if (interfaceHash == 0xac7fbab5f54a3ca8194167523c6753bfeb96a445279294b6125b68cce2177054 && addr == address(this)) {
-           // keccak256(abi.encodePacked("ERC820_ACCEPT_MAGIC") == ?
-            return keccak256(abi.encodePacked("ERC820_ACCEPT_MAGIC"));
-        } else {
-            return 0;
-        }
+        implementInterface("ERC777Token");
     }
 
     /**

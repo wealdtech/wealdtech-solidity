@@ -21,7 +21,7 @@ contract('ERC777Token', accounts => {
     let tokenBalances = {};
 
     it('confirms that ERC820 is deployed', async function() {
-        const erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
+        const erc820Instance = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
         await erc820Instance.setManager(accounts[0], accounts[1]);
         const ac1 = await erc820Instance.getManager(accounts[0]);
         assert.equal(ac1, accounts[1]);

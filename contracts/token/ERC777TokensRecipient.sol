@@ -18,6 +18,8 @@ pragma solidity ^0.4.18;
  * @title ERC777TokensRecipient
  *        ERC777TokensRecipient is the interface for contracts that handle
  *        receipt of tokens from ERC777 token contracts
+ *
+ * @author Jim McDonald
  */
 interface ERC777TokensRecipient {
 

@@ -22,7 +22,7 @@ contract('SupplementWitholdingAccount', accounts => {
     tokenBalances[accounts[3]] = web3.toBigNumber(0);
 
     it('sets up', async function() {
-        erc820Instance = await ERC820Registry.at('0x820A8Cfd018b159837d50656c49d28983f18f33c');
+        erc820Instance = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
         erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
             from: accounts[0],
             gas: 10000000
