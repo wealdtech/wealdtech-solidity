@@ -36,6 +36,11 @@ contract SignatureAuthority {
      * @param _signature the signature supplied by the authority
      */
     function send(IERC777 _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, bytes _signature) public {
+        preSend(_token, _holder, _recipient, _amount, _data, _nonce, _signature);
+        _token.operatorSend(_holder, _recipient, _amount, _data, "");
+    }
+
+    function preSend(IERC777 _token, address _holder, address _recipient, uint256 _amount, bytes _data, uint256 _nonce, bytes _signature) internal {
         // Ensure that signature contains the correct number of bytes
         require(_signature.length == 65, "length of signature incorrect");
 
@@ -46,8 +51,6 @@ contract SignatureAuthority {
         require(signatory != 0, "signatory is invalid");
         require(signatory == _holder, "signatory is not the holder");
         usedHashes[hash] = true;
-
-        _token.operatorSend(_holder, _recipient, _amount, _data, "");
     }
 
     /**
