@@ -55,7 +55,7 @@ contract FixedPriceSeller {
     /**
      * Checks and state update to carry out prior to sending tokens
      */
-    function preSend(IERC777 _token, address _holder) internal returns (uint256) {
+    function preSend(IERC777 _token, address _holder) internal view returns (uint256) {
         require(pricePerToken[_token][_holder] != 0, "not for sale");
         uint256 amount = msg.value.mul(1000000000000000000).div(pricePerToken[_token][_holder]);
         require(amount > _token.granularity(), "not enough ether paid");
