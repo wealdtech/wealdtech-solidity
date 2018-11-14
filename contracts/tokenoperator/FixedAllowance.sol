@@ -56,16 +56,15 @@ contract FixedAllowance {
     }
 
     function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
-        confirmAllowed(_token, _holder, msg.sender, _amount);
-        updateState(_token, _holder, msg.sender, _amount);
+        preSend(_token, _holder, msg.sender, _amount);
         _token.operatorSend(_holder, _recipient, _amount, "", "");
     }
 
-    function confirmAllowed(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal view {
+    /** 
+     * Checks and state update to carry out prior to sending tokens
+     */
+    function preSend(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal {
         require(_amount <= allowances[_token][_holder][_transferer], "amount exceeds allowance");
-    }
-
-    function updateState(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal {
         allowances[_token][_holder][_transferer] = allowances[_token][_holder][_transferer].sub(_amount);
     }
 }

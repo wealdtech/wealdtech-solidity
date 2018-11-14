@@ -25,17 +25,12 @@ import './FixedAllowance.sol';
  */
 contract FixedTimeLockup is FixedTimeRelease, FixedAllowance {
     function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
-        confirmAllowed(_token, _holder, msg.sender, _amount);
-        updateState(_token, _holder, msg.sender, _amount);
+        preSend(_token, _holder, msg.sender, _amount);
         _token.operatorSend(_holder, _recipient, _amount, "", "");
     }
 
-    function confirmAllowed(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal view {
-        FixedTimeRelease.confirmAllowed(_token, _holder);
-        FixedAllowance.confirmAllowed(_token, _holder, _transferer, _amount);
-    }
-
-    function updateState(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal {
-        FixedAllowance.updateState(_token, _holder, _transferer, _amount);
+    function preSend(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal {
+        FixedTimeRelease.preSend(_token, _holder);
+        FixedAllowance.preSend(_token, _holder, _transferer, _amount);
     }
 }

@@ -6,8 +6,8 @@ import '../token/IERC777.sol';
 /**
  * @title FixedTimeRelease
  *
- *        An ERC777 token operator contract that releases tokens at a fixed
- *        date/time.
+ *        An ERC777 token operator contract that releases all tokens held by an
+ *        address at a fixed date/time.
  *        
  *        N.B. this contract will make tokens accessible to anyone after the
  *        release timestamp.  As such it is generally not used by itself but
@@ -50,11 +50,11 @@ contract FixedTimeRelease {
     }
 
     function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
-        confirmAllowed(_token, _holder);
+        preSend(_token, _holder);
         _token.operatorSend(_holder, _recipient, _amount, "", "");
     }
 
-    function confirmAllowed(IERC777 _token, address _holder) internal view {
+    function preSend(IERC777 _token, address _holder) internal view {
         require(releaseTimestamps[_token][_holder] != 0, "no release time set");
         require(releaseTimestamps[_token][_holder] <= now, "not yet released");
     }
