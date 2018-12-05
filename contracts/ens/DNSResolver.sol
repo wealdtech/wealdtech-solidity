@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.0;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,7 +74,7 @@ contract DNSResolver is PublicResolver {
     
     event Updated(bytes32 node, bytes name, uint16 resource, uint256 length);
     event Deleted(bytes32 node, bytes name, uint16 resource);
-    function setDNSRecords(bytes32 node, bytes data) public onlyNodeOwner(node) {
+    function setDNSRecords(bytes32 node, bytes memory data) public onlyNodeOwner(node) {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
@@ -112,7 +112,7 @@ contract DNSResolver is PublicResolver {
                 }
             }
         }
-        rrData = data.substring(offset, data.length - offset);
+        bytes memory rrData = data.substring(offset, data.length - offset);
         if (value.length == 0) {
             if (records[node][nameHash][resource].length != 0) {
                 nameEntriesCount[node][nameHash]--;
@@ -135,7 +135,7 @@ contract DNSResolver is PublicResolver {
      * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
      * @return the DNS record in wire format if present, otherwise empty
      */
-    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes data) {
+    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes memory data) {
         return records[node][name][resource];
     }
 
@@ -144,7 +144,7 @@ contract DNSResolver is PublicResolver {
      * @param node the namehash of the node for which to store the zone
      * @param data the DNS zone in wire format
      */
-    function setDNSZone(bytes32 node, bytes data) public onlyNodeOwner(node) {
+    function setDNSZone(bytes32 node, bytes memory data) public onlyNodeOwner(node) {
         zones[node] = data;
     }
 
@@ -153,7 +153,7 @@ contract DNSResolver is PublicResolver {
      * @param node the namehash of the node for which to fetch the zone
      * @return the DNS zone in wire format if present, otherwise empty
      */
-    function dnsZone(bytes32 node) public view returns (bytes data) {
+    function dnsZone(bytes32 node) public view returns (bytes memory data) {
         return zones[node];
     }
 

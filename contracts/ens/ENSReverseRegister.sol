@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.5.0;
 
 
 // Copyright © 2017 Weald Technology Trading Limited
@@ -16,13 +16,13 @@ pragma solidity ^0.4.11;
 
 // Important parts of the ENS registry contract
 contract RegistryRef {
-    function owner(bytes32 node) public constant returns (address);
+    function owner(bytes32 node) public view returns (address);
 }
 
 
 // Important parts of the ENS reverse registrar contract
 contract ReverseRegistrarRef {
-    function setName(string name) public returns (bytes32 node);
+    function setName(string memory name) public returns (bytes32 node);
 }
 
 
@@ -60,13 +60,13 @@ contract ENSReverseRegister {
     /**
      * @dev initialise the contract with the address of the reverse registrar
      */
-    constructor(address registry, string name) public {
-        if (registry != 0) {
+    constructor(address registry, string memory name) public {
+        if (registry != address(0)) {
             // Fetch the address of the ENS reverse registrar
             // Hex value is namehash('addr.reverse')
             address reverseRegistrar = RegistryRef(registry).owner(0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2);
             // If it exists then set our reverse resolution
-            if (reverseRegistrar != 0) {
+            if (reverseRegistrar != address(0)) {
                 ReverseRegistrarRef(reverseRegistrar).setName(name);
             }
         }

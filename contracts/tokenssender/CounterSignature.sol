@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
@@ -44,7 +44,7 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
     /**
      * setCounterSignatory sets a counter-signatory.
      */
-    function setCounterSignatory(address _counterSignatory) public {
+    function setCounterSignatory(address _counterSignatory) external {
         counterSignatories[msg.sender] = _counterSignatory;
         emit CounterSignatorySet(msg.sender, _counterSignatory);
     }
@@ -52,22 +52,22 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
     /**
      * clearCounterSignatory clears a counter-signatory.
      */
-    function clearCounterSignatory() public {
-        counterSignatories[msg.sender] = 0;
+    function clearCounterSignatory() external {
+        counterSignatories[msg.sender] = address(0);
         emit CounterSignatoryCleared(msg.sender);
     }
 
     /**
      * getCounterSignatory gets a counter-signatory.
      */
-    function getCounterSignatory(address _holder) public constant returns (address) {
+    function getCounterSignatory(address _holder) external view returns (address) {
         return counterSignatories[_holder];
     }
 
     /**
      * This expects operatorData to contain the signature (65 bytes)
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
 
         // Ensure that operatorData contains the correct number of bytes
         require(operatorData.length == 65, "length of operator data incorrect");
@@ -77,7 +77,7 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
         require(!usedHashes[hash], "tokens already sent");
 
         address counterSignatory = signer(hash, operatorData);
-        require(counterSignatory != 0, "signatory is invalid");
+        require(counterSignatory != address(0), "signatory is invalid");
         require(counterSignatory == counterSignatories[holder], "signatory is not a valid countersignatory");
         usedHashes[hash] = true;
     }
@@ -85,7 +85,7 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
     /**
      * This generates the hash for the counter-signature
      */
-    function hashForCounterSignature(address token, address operator, address holder, address recipient, uint256 amount, bytes data) public view returns (bytes32) {
+    function hashForCounterSignature(address token, address operator, address holder, address recipient, uint256 amount, bytes memory data) public view returns (bytes32) {
         return keccak256(abi.encodePacked(token, address(this), operator, holder, recipient, amount, data));
     }
 
@@ -94,7 +94,7 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
      * Note that a returned value of 0 means that the signature is invalid,
      * and should be treated as such.
      */
-    function signer(bytes32 _hash, bytes _signature) private pure returns (address) {
+    function signer(bytes32 _hash, bytes memory _signature) private pure returns (address) {
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -110,7 +110,7 @@ contract CounterSignature is ERC777TokensSender, ERC820Implementer {
         }
 
         if (v != 27 && v != 28) {
-            return 0;
+            return address(0);
         }
 
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";

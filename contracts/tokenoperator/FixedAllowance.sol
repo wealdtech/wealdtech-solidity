@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../math/SafeMath.sol';
 import '../token/IERC777.sol';
@@ -39,9 +39,9 @@ contract FixedAllowance {
       * @param _allowance the amount of tokens to allow
       */
     function setAllowance(IERC777 _token, address _recipient, uint256 _oldAllowance, uint256 _allowance) public {
-        require(allowances[_token][msg.sender][_recipient] == _oldAllowance, "old allowance does not match current allowance");
-        allowances[_token][msg.sender][_recipient] = _allowance;
-        emit Allowance(_token, msg.sender, _recipient, _allowance);
+        require(allowances[address(_token)][msg.sender][_recipient] == _oldAllowance, "old allowance does not match current allowance");
+        allowances[address(_token)][msg.sender][_recipient] = _allowance;
+        emit Allowance(address(_token), msg.sender, _recipient, _allowance);
     }
 
     /*
@@ -52,7 +52,7 @@ contract FixedAllowance {
      * @return the allowance
      */
     function getAllowance(IERC777 _token, address _holder, address _recipient) public view returns (uint256) {
-        return allowances[_token][_holder][_recipient];
+        return allowances[address(_token)][_holder][_recipient];
     }
 
     function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
@@ -64,7 +64,7 @@ contract FixedAllowance {
      * Checks and state update to carry out prior to sending tokens
      */
     function preSend(IERC777 _token, address _holder, address _transferer, uint256 _amount) internal {
-        require(_amount <= allowances[_token][_holder][_transferer], "amount exceeds allowance");
-        allowances[_token][_holder][_transferer] = allowances[_token][_holder][_transferer].sub(_amount);
+        require(_amount <= allowances[address(_token)][_holder][_transferer], "amount exceeds allowance");
+        allowances[address(_token)][_holder][_transferer] = allowances[address(_token)][_holder][_transferer].sub(_amount);
     }
 }

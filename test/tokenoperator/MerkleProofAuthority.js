@@ -6,7 +6,6 @@ const MerkleTree = require('merkletreejs');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const MerkleProofAuthority = artifacts.require('MerkleProofAuthority');
-const ERC820Registry = artifacts.require('ERC820Registry');
 
 // Helpers
 function leftPad(num, padlen) {
@@ -20,7 +19,7 @@ function strToBuf(str) {
     return Buffer.from(str.replace(/^0x/, ''), 'hex');
 }
 function sha256(data) {
-    return strToBuf(web3.sha3(bufToStr(data, 128), { encoding: 'hex' }));
+    return strToBuf(web3.utils.sha3(bufToStr(data, 128), { encoding: 'hex' }));
 }
 function constructProof(tree, leaf) {
     const treeProof = tree.getProof(leaf);
@@ -41,20 +40,20 @@ contract('MerkleProofAuthority', accounts => {
     var tree;
     var leaves;
 
-    const granularity = web3.toBigNumber('10000000000000000');
-    const initialSupply = granularity.mul('10000000');
+    const granularity = web3.utils.toBN('10000000000000000');
+    const initialSupply = granularity.mul(web3.utils.toBN('10000000'));
 
     let tokenBalances = {};
-    tokenBalances[accounts[0]] = web3.toBigNumber(0);
-    tokenBalances[accounts[1]] = web3.toBigNumber(0);
-    tokenBalances[accounts[2]] = web3.toBigNumber(0);
+    tokenBalances[accounts[0]] = web3.utils.toBN(0);
+    tokenBalances[accounts[1]] = web3.utils.toBN(0);
+    tokenBalances[accounts[2]] = web3.utils.toBN(0);
 
     it('sets up', async function() {
         operator = await MerkleProofAuthority.new({
             from: accounts[0]
         });
 
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [operator.address], 0, {
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [operator.address], '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });
@@ -65,8 +64,8 @@ contract('MerkleProofAuthority', accounts => {
         await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // accounts[1] is our test source address so send it some tokens
-        const amount = granularity.mul(100);
-        await erc777Instance.send(accounts[1], amount, '', {
+        const amount = granularity.mul(web3.utils.toBN('100'));
+        await erc777Instance.send(accounts[1], amount, [], {
             from: accounts[0]
         });
         tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(amount);
@@ -78,13 +77,13 @@ contract('MerkleProofAuthority', accounts => {
         // Create the leaves, which are the hashes of the send parameters
         leaves = [];
         // Transfer of 5 from accounts1 to accounts2
-        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[1], accounts[2], granularity.mul(5), '', 1)));
+        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[1], accounts[2], granularity.mul(web3.utils.toBN('5')), [], 1)));
         // Another transfer of 5 from accounts1 to accounts2 (different nonce)
-        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[1], accounts[2], granularity.mul(5), '', 2)));
+        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[1], accounts[2], granularity.mul(web3.utils.toBN('5')), [], 2)));
         // Transfer of 1 from accounts2 to accounts3
-        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[2], accounts[1], granularity, '', 1)));
+        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[2], accounts[1], granularity, [], 1)));
         // Transfer of 1 from accounts1 to accounts3
-        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[1], accounts[3], granularity, '', 1)));
+        leaves.push(strToBuf(await operator.hashForSend(erc777Instance.address, accounts[1], accounts[3], granularity, [], 1)));
 
         tree = new MerkleTree(leaves, sha256);
 
@@ -97,8 +96,8 @@ contract('MerkleProofAuthority', accounts => {
     it('transfers with a valid proof', async function() {
         const {proof, path} = constructProof(tree, leaves[0]);
 
-        const amount = granularity.mul(5);
-        await operator.send(erc777Instance.address, accounts[1], accounts[2], amount, '', 1, path, proof, {
+        const amount = granularity.mul(web3.utils.toBN('5'));
+        await operator.send(erc777Instance.address, accounts[1], accounts[2], amount, [], 1, path, proof, {
             from: accounts[9]
         });
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
@@ -109,10 +108,10 @@ contract('MerkleProofAuthority', accounts => {
     it('does not allow the same transfer twice', async function() {
         const {proof, path} = constructProof(tree, leaves[0]);
 
-        const amount = granularity.mul(5);
+        const amount = granularity.mul(web3.utils.toBN('5'));
         // Attempt to transfer tokens again - should fail as the parameters are the same as a previous transaction
         await truffleAssert.reverts(
-                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, '', 1, path, proof, {
+                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, [], 1, path, proof, {
                     from: accounts[9]
                 }), 'tokens already sent');
     });
@@ -121,8 +120,8 @@ contract('MerkleProofAuthority', accounts => {
         const {proof, path} = constructProof(tree, leaves[1]);
 
         tree.verify(tree.getProof(leaves[1]), leaves[1], tree.getRoot());
-        const amount = granularity.mul(5);
-        await operator.send(erc777Instance.address, accounts[1], accounts[2], amount, '', 2, path, proof, {
+        const amount = granularity.mul(web3.utils.toBN('5'));
+        await operator.send(erc777Instance.address, accounts[1], accounts[2], amount, [], 2, path, proof, {
             from: accounts[9]
         });
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
@@ -136,7 +135,7 @@ contract('MerkleProofAuthority', accounts => {
         const amount = granularity;
         // Attempt to transfer tokens again - should fail as the holder is not the designated account
         await truffleAssert.reverts(
-                operator.send(erc777Instance.address, accounts[2], accounts[1], amount, '', 1, path, proof, {
+                operator.send(erc777Instance.address, accounts[2], accounts[1], amount, [], 1, path, proof, {
                     from: accounts[9]
                 }), 'merkle proof invalid');
     });
@@ -151,7 +150,7 @@ contract('MerkleProofAuthority', accounts => {
 
         const amount = granularity;
         await truffleAssert.reverts(
-                operator.send(erc777Instance.address, accounts[1], accounts[3], amount, '', 1, path, proof, {
+                operator.send(erc777Instance.address, accounts[1], accounts[3], amount, [], 1, path, proof, {
                     from: accounts[9]
                 }), 'merkle proof invalid');
     });

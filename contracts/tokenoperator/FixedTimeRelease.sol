@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/IERC777.sol';
 
@@ -35,9 +35,9 @@ contract FixedTimeRelease {
      * @param _timestamp the unix timestamp at which the tokens are released
      */
     function setReleaseTimestamp(IERC777 _token, uint256 _timestamp) public {
-        require(_timestamp >= releaseTimestamps[_token][msg.sender], "cannot bring release time forward");
-        releaseTimestamps[_token][msg.sender] = _timestamp;
-        emit ReleaseTimestamp(_token, msg.sender, _timestamp);
+        require(_timestamp >= releaseTimestamps[address(_token)][msg.sender], "cannot bring release time forward");
+        releaseTimestamps[address(_token)][msg.sender] = _timestamp;
+        emit ReleaseTimestamp(address(_token), msg.sender, _timestamp);
     }
 
     /*
@@ -47,7 +47,7 @@ contract FixedTimeRelease {
      * @return the unix timestamp at which the tokens are released
      */
     function getReleaseTimestamp(IERC777 _token, address _holder) public view returns (uint256) {
-        return releaseTimestamps[_token][_holder];
+        return releaseTimestamps[address(_token)][_holder];
     }
 
     function send(IERC777 _token, address _holder, address _recipient, uint256 _amount) public {
@@ -56,7 +56,7 @@ contract FixedTimeRelease {
     }
 
     function preSend(IERC777 _token, address _holder) internal view {
-        require(releaseTimestamps[_token][_holder] != 0, "no release time set");
-        require(releaseTimestamps[_token][_holder] <= now, "not yet released");
+        require(releaseTimestamps[address(_token)][_holder] != 0, "no release time set");
+        require(releaseTimestamps[address(_token)][_holder] <= now, "not yet released");
     }
 }

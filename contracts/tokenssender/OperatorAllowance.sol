@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
@@ -37,7 +37,7 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
     /**
      * setAllowance sets an allowance.
      */
-    function setAllowance(address _operator, address _token, uint256 _currentAllowance, uint256 _newAllowance) public {
+    function setAllowance(address _operator, address _token, uint256 _currentAllowance, uint256 _newAllowance) external {
         require(allowances[msg.sender][_operator][_token] == _currentAllowance, "current allowance incorrect");
         allowances[msg.sender][_operator][_token] = _newAllowance;
         emit AllowanceSet(msg.sender, _operator, _token, _newAllowance);
@@ -46,11 +46,11 @@ contract OperatorAllowance is ERC777TokensSender, ERC820Implementer {
     /**
      * getAllowance gets an allowance.
      */
-    function getAllowance(address _holder, address _operator, address _token) public constant returns (uint256) {
+    function getAllowance(address _holder, address _operator, address _token) external view returns (uint256) {
         return allowances[_holder][_operator][_token];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (recipient, data, operatorData);
 
         if (operator == holder) {

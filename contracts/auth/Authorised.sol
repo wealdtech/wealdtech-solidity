@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.0;
 
 import './Permissioned.sol';
 
@@ -62,7 +62,7 @@ contract Authorised is Permissioned {
      * @param _reusable By default hashes can only be used once.  if this is true
      *                  then it can be reused
      */
-    modifier ifAuthorised(bytes32 _actionHash, bytes _signature, bool _reusable) {
+    modifier ifAuthorised(bytes32 _actionHash, bytes memory _signature, bool _reusable) {
         require(authorise(_actionHash, _signature, _reusable));
         _;
     }
@@ -72,7 +72,7 @@ contract Authorised is Permissioned {
      *      If a non-reusable action is authorised it is consumed.
      * @return true if the action is authorised.
      */
-    function authorise(bytes32 _actionHash, bytes _signature, bool _reusable) internal returns (bool) {
+    function authorise(bytes32 _actionHash, bytes memory _signature, bool _reusable) internal returns (bool) {
         if (!_reusable) {
             if (usedHashes[_actionHash] == true) {
                 // Cannot re-use
@@ -80,7 +80,7 @@ contract Authorised is Permissioned {
             }
         }
         address signer = obtainSigner(_actionHash, _signature);
-        if (signer == 0) {
+        if (signer == address(0)) {
             return false;
         }
 
@@ -97,12 +97,12 @@ contract Authorised is Permissioned {
      * @dev Check if a signature can authorise the hash of an action, without
      *      consuming the authorisation.
      */
-    function checkAuthorisation(bytes32 _actionHash, bytes _signature) public view returns (bool) {
+    function checkAuthorisation(bytes32 _actionHash, bytes memory _signature) public view returns (bool) {
         if (usedHashes[_actionHash] == true) {
             return false;
         }
         address signer = obtainSigner(_actionHash, _signature);
-        if (signer == 0) {
+        if (signer == address(0)) {
             return false;
         }
         return isPermitted(signer, PERM_AUTHORISER);
@@ -112,13 +112,13 @@ contract Authorised is Permissioned {
      * @dev Obtain the signer address from a signature.
      *      Note that it is possible for the signer to be returned as 0x00
      */
-    function obtainSigner(bytes32 _actionHash, bytes _signature) private pure returns (address) {
+    function obtainSigner(bytes32 _actionHash, bytes memory _signature) private pure returns (address) {
         bytes32 r;
         bytes32 s;
         uint8 v;
 
         if (_signature.length != 65) {
-            return 0;
+            return address(0);
         }
 
         assembly {
@@ -132,7 +132,7 @@ contract Authorised is Permissioned {
         }
 
         if (v != 27 && v != 28) {
-            return 0;
+            return address(0);
         }
 
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";

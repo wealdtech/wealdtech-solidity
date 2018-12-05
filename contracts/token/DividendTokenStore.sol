@@ -1,6 +1,6 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.5.0;
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017, 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -60,7 +60,7 @@ contract DividendTokenStore is SimpleTokenStore {
     }
     Dividend[] private dividends;
     // The address holding dividends that have yet to be paid out
-    address private DIVIDEND_ADDRESS = 0x01;
+    address private DIVIDEND_ADDRESS = address(0x01);
 
     // Permissions for each operation
     bytes32 internal constant PERM_ISSUE_DIVIDEND = keccak256("token storage: issue dividend");
@@ -68,7 +68,7 @@ contract DividendTokenStore is SimpleTokenStore {
     /**
      * @dev obtain the dividend(s) owing to a given account.
      */
-    function dividendsOwing(address _account) internal constant returns(uint256) {
+    function dividendsOwing(address _account) internal view returns(uint256) {
         uint256 initialBalance = balances[_account];
         uint256 balance = initialBalance;
         // Iterate over all outstanding dividends
@@ -98,7 +98,7 @@ contract DividendTokenStore is SimpleTokenStore {
     /**
      * @dev Obtain a balance.
      */
-    function balanceOf(address _account) public constant returns (uint256 balance) {
+    function balanceOf(address _account) public view returns (uint256 balance) {
         return balances[_account] + dividendsOwing(_account);
     }
 

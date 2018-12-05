@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
@@ -41,7 +41,7 @@ contract Lockup is ERC777TokensSender, ERC820Implementer {
      * @param _token the address of the token contract
      * @param _expiry the unix timestamp at which the lockup expires
      */
-    function setExpiry(address _token, uint256 _expiry) public {
+    function setExpiry(address _token, uint256 _expiry) external {
         require(expiries[_token][msg.sender] < _expiry, "not allowed to reduce lockup expiry");
         expiries[_token][msg.sender] = _expiry;
         emit LockupExpires(_token, msg.sender, _expiry);
@@ -53,7 +53,7 @@ contract Lockup is ERC777TokensSender, ERC820Implementer {
      * @param _holder the address of the holder
      * @return the unix timestamp at which the lockup expires
      */
-    function getExpiry(address _token, address _holder) public view returns (uint256) {
+    function getExpiry(address _token, address _holder) external view returns (uint256) {
         return expiries[_token][_holder];
     }
 
@@ -61,7 +61,7 @@ contract Lockup is ERC777TokensSender, ERC820Implementer {
      * This ensures that the lockup for the token has expired and that the
      * amount transferred does not exceed the allowance
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (operator, recipient, amount, data, operatorData);
 
         require(expiries[msg.sender][holder] != 0, "lockup expiry is not set");

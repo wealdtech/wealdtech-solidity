@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensRecipient.sol';
 import '../token/IERC777.sol';
@@ -38,26 +38,26 @@ contract Forwarder is ERC777TokensRecipient, ERC820Implementer {
         implementInterface("ERC777TokensRecipient");
     }
 
-    function setForwarder(address target) public {
+    function setForwarder(address target) external {
         forwardingAddresses[msg.sender] = target;
         emit ForwardingAddressSet(msg.sender, target);
     }
 
-    function clearForwarder() public {
+    function clearForwarder() external {
         delete(forwardingAddresses[msg.sender]);
         emit ForwardingAddressCleared(msg.sender);
     }
 
-    function getForwarder(address target) public constant returns (address) {
+    function getForwarder(address target) external view returns (address) {
         return forwardingAddresses[target];
     }
 
     /**
      * tokensReceived forwards the token if a forwarder is set.
      */
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (operator, holder, data, operatorData);
-        if (forwardingAddresses[recipient] != 0) {
+        if (forwardingAddresses[recipient] != address(0)) {
             IERC777 tokenContract = IERC777(msg.sender);
             // Transfer the tokens - this throws if it fails
             tokenContract.operatorSend(recipient, forwardingAddresses[recipient], amount, "", "");

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensSender.sol';
 import '../registry/ERC820Implementer.sol';
@@ -35,7 +35,7 @@ contract DenySpecifiedRecipients is ERC777TokensSender, ERC820Implementer {
     /**
      * setRecipient sets a recipient to which transfers are denied
      */
-    function setRecipient(address _recipient) public {
+    function setRecipient(address _recipient) external {
         recipients[msg.sender][_recipient] = true;
         emit RecipientSet(msg.sender, _recipient);
     }
@@ -43,16 +43,16 @@ contract DenySpecifiedRecipients is ERC777TokensSender, ERC820Implementer {
     /**
      * clearRecipient removes a recipient to which transfers are denied
      */
-    function clearRecipient(address _recipient) public {
+    function clearRecipient(address _recipient) external {
         recipients[msg.sender][_recipient] = false;
         emit RecipientCleared(msg.sender, _recipient);
     }
 
-    function getRecipient(address _holder, address _recipient) public constant returns (bool) {
+    function getRecipient(address _holder, address _recipient) external view returns (bool) {
         return recipients[_holder][_recipient];
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes calldata data, bytes calldata operatorData) external {
         (operator, value, data, operatorData);
 
         require(!recipients[holder][recipient], "transfers to that recipient are blocked");

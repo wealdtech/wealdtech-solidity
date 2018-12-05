@@ -1,6 +1,6 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.5.0;
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017, 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -41,7 +41,7 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => uint256) UInt256Storage;
 
-    function getUInt256(bytes32 record) public constant returns (uint256) {
+    function getUInt256(bytes32 record) public view returns (uint256) {
         return UInt256Storage[record];
     }
 
@@ -51,17 +51,17 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => string) StringStorage;
 
-    function getString(bytes32 record) public constant returns (string) {
+    function getString(bytes32 record) public view returns (string memory) {
         return StringStorage[record];
     }
 
-    function setString(bytes32 record, string value) public ifPermitted(msg.sender, PERM_WRITE) {
+    function setString(bytes32 record, string memory value) public ifPermitted(msg.sender, PERM_WRITE) {
         StringStorage[record] = value;
     }
 
     mapping(bytes32 => address) AddressStorage;
 
-    function getAddress(bytes32 record) public constant returns (address) {
+    function getAddress(bytes32 record) public view returns (address) {
         return AddressStorage[record];
     }
 
@@ -71,17 +71,17 @@ contract PermissionedStorage is Permissioned {
 
     mapping(bytes32 => bytes) BytesStorage;
 
-    function getBytes(bytes32 record) public constant returns (bytes) {
+    function getBytes(bytes32 record) public view returns (bytes memory) {
         return BytesStorage[record];
     }
 
-    function setBytes(bytes32 record, bytes value) public ifPermitted(msg.sender, PERM_WRITE) {
+    function setBytes(bytes32 record, bytes memory value) public ifPermitted(msg.sender, PERM_WRITE) {
         BytesStorage[record] = value;
     }
 
     mapping(bytes32 => bool) BooleanStorage;
 
-    function getBoolean(bytes32 record) public constant returns (bool) {
+    function getBoolean(bytes32 record) public view returns (bool) {
         return BooleanStorage[record];
     }
 
@@ -91,7 +91,7 @@ contract PermissionedStorage is Permissioned {
     
     mapping(bytes32 => int256) Int256Storage;
 
-    function getInt256(bytes32 record) public constant returns (int256) {
+    function getInt256(bytes32 record) public view returns (int256) {
         return Int256Storage[record];
     }
 

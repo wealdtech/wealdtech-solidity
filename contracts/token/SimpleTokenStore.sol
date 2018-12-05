@@ -1,6 +1,6 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017, 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -81,7 +81,7 @@ contract SimpleTokenStore is ITokenStore {
      * @dev Fallback.
      *      This contract does not accept funds, so revert
      */
-    function () public payable {
+    function () external {
         revert();
     }
 
@@ -121,7 +121,7 @@ contract SimpleTokenStore is ITokenStore {
     /**
      * @dev Obtain a balance.
      */
-    function balanceOf(address _owner) public constant returns (uint256 balance) {
+    function balanceOf(address _owner) public view returns (uint256 balance) {
         return balances[_owner];
     }
 
@@ -160,7 +160,7 @@ contract SimpleTokenStore is ITokenStore {
      *      address can pay a certain amount it is important to check using
      *      both the values obtain from this and balanceOf().
      */
-    function allowanceOf(address _owner, address _recipient) public constant returns (uint256) {
+    function allowanceOf(address _owner, address _recipient) public view returns (uint256) {
         return allowances[_owner][_recipient];
     }
 

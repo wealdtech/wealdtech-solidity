@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.0;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,14 +54,14 @@ contract FixedPriceTokenAgent is ITokenAgent {
     /**
      * @dev active states if the agent is currently active.
      */ 
-    function active() public constant returns (bool) {
+    function active() public view returns (bool) {
         return tokensAvailable() > 0;
     }
 
     /**
      * @dev provide the number of tokens available.
      */
-    function tokensAvailable() public constant returns (uint256) {
+    function tokensAvailable() public view returns (uint256) {
         return token.allowance(provider, address(this));
     }
 
@@ -69,7 +69,7 @@ contract FixedPriceTokenAgent is ITokenAgent {
      * @dev attempt to obtain tokens depending on the amount of funds
      * supplied.
      */
-    function () public payable {
+    function () external payable {
         uint256 amount = msg.value.mul(tokensPerWei);
         require(amount > 0);
         require(amount <= tokensAvailable());

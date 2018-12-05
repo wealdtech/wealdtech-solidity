@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensRecipient.sol';
 import '../registry/ERC820Implementer.sol';
@@ -33,17 +33,17 @@ contract AllowSpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
         implementInterface("ERC777TokensRecipient");
     }
 
-    function addToken(address token) public {
+    function addToken(address token) external {
         allowed[msg.sender][token] = true;
         emit TokenAdded(msg.sender, token);
     }
 
-    function removeToken(address token) public {
+    function removeToken(address token) external {
         allowed[msg.sender][token] = false;
         emit TokenRemoved(msg.sender, token);
     }
 
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (operator, holder, amount, data, operatorData);
         require(allowed[recipient][msg.sender], "not allowed to receive that token");
     }

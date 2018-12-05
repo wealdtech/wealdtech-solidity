@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/IERC777.sol';
 
@@ -39,12 +39,12 @@ contract VaultRecipient {
      * @param _vault the address of the vault
      */
     function setVault(IERC777 _token, address _vault) public {
-        vaults[_token][msg.sender] = _vault;
-        emit Vault(_token, msg.sender, _vault);
+        vaults[address(_token)][msg.sender] = _vault;
+        emit Vault(address(_token), msg.sender, _vault);
     }
 
     function getVault(IERC777 _token, address _holder) public view returns (address) {
-        return vaults[_token][_holder];
+        return vaults[address(_token)][_holder];
     }
 
     /**
@@ -53,14 +53,14 @@ contract VaultRecipient {
      * @param _amount the amount of tokens to send to the vault
      * @param _data the data to attach to the send
      */
-    function send(IERC777 _token, address _holder, uint256 _amount, bytes _data) public {
+    function send(IERC777 _token, address _holder, uint256 _amount, bytes memory _data) public {
         preSend(_token, _holder);
         _token.operatorSend(_holder, msg.sender, _amount, _data, "");
     }
 
     function preSend(IERC777 _token, address _holder) internal view {
-        address vault = vaults[_token][_holder];
-        require(vault != 0, "vault not configured");
+        address vault = vaults[address(_token)][_holder];
+        require(vault != address(0), "vault not configured");
         require(vault == msg.sender, "not the vault account");
     }
 }

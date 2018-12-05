@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.5.0;
 
 /**
  * @dev A library for working with mutable byte buffers in Solidity.
@@ -44,7 +44,7 @@ library Buffer {
      * @param b The bytes object to initialize the buffer with.
      * @return A new buffer.
      */
-    function fromBytes(bytes b) internal pure returns(buffer memory) {
+    function fromBytes(bytes memory b) internal pure returns(buffer memory) {
       buffer memory buf;
       buf.buf = b;
       buf.capacity = b.length;
@@ -86,7 +86,7 @@ library Buffer {
      * @param len The number of bytes to copy.
      * @return The original buffer, for chaining.
      */
-    function write(buffer memory buf, uint off, bytes data, uint len) internal pure returns(buffer memory) {
+    function write(buffer memory buf, uint off, bytes memory data, uint len) internal pure returns(buffer memory) {
         require(len <= data.length);
 
         if(off + len + buf.buf.length > buf.capacity) {
@@ -137,7 +137,7 @@ library Buffer {
      * @param len The number of bytes to copy.
      * @return The original buffer, for chaining.
      */
-    function append(buffer memory buf, bytes data, uint len) internal pure returns (buffer memory) {
+    function append(buffer memory buf, bytes memory data, uint len) internal pure returns (buffer memory) {
       return write(buf, buf.buf.length, data, len);
     }
 
@@ -148,7 +148,7 @@ library Buffer {
      * @param data The data to append.
      * @return The original buffer, for chaining.
      */
-    function append(buffer memory buf, bytes data) internal pure returns (buffer memory) {
+    function append(buffer memory buf, bytes memory data) internal pure returns (buffer memory) {
       return write(buf, buf.buf.length, data, data.length);
     }
 

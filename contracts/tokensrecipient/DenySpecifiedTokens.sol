@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensRecipient.sol';
 import '../registry/ERC820Implementer.sol';
@@ -35,7 +35,7 @@ contract DenySpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
     /**
      * Add a token to the list of tokens that this address will refuse.
      */
-    function addToken(address token) public {
+    function addToken(address token) external {
         disallowed[msg.sender][token] = true;
         emit TokenAdded(msg.sender, token);
     }
@@ -43,12 +43,12 @@ contract DenySpecifiedTokens is ERC777TokensRecipient, ERC820Implementer {
     /**
      * Remove a token from the list of tokens that this address will refuse.
      */
-    function removeToken(address token) public {
+    function removeToken(address token) external {
         disallowed[msg.sender][token] = false;
         emit TokenRemoved(msg.sender, token);
     }
 
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (operator, holder, amount, data, operatorData);
         require(!disallowed[recipient][msg.sender], "token is explicitly disallowed");
     }

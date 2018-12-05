@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../math/SafeMath.sol';
 import '../token/IERC777.sol';
@@ -31,8 +31,8 @@ contract FixedPriceSeller {
      * the price is 1 Ether for 1 token then _pricePerToken would be 10^18.
      */
     function setPricePerToken(IERC777 _token, uint256 _pricePerToken) public {
-        pricePerToken[_token][msg.sender] = _pricePerToken;
-        emit PricePerToken(_token, msg.sender, _pricePerToken);
+        pricePerToken[address(_token)][msg.sender] = _pricePerToken;
+        emit PricePerToken(address(_token), msg.sender, _pricePerToken);
     }
 
     /**
@@ -40,13 +40,13 @@ contract FixedPriceSeller {
      * the price is 1 Ether for 1 token this would return 10^18.
      */
     function getPricePerToken(IERC777 _token, address _holder) public view returns (uint256) {
-        return pricePerToken[_token][_holder];
+        return pricePerToken[address(_token)][_holder];
     }
 
     /**
      * Send tokens from a holder at their price
      */
-    function send(IERC777 _token, address _holder) public payable {
+    function send(IERC777 _token, address payable _holder) public payable {
         uint256 amount = preSend(_token, _holder);
         _token.operatorSend(_holder, msg.sender, amount, "", "");
         postSend(_holder);
@@ -56,10 +56,10 @@ contract FixedPriceSeller {
      * Checks and state update to carry out prior to sending tokens
      */
     function preSend(IERC777 _token, address _holder) internal view returns (uint256) {
-        require(pricePerToken[_token][_holder] != 0, "not for sale");
-        uint256 amount = msg.value.mul(1000000000000000000).div(pricePerToken[_token][_holder]);
+        require(pricePerToken[address(_token)][_holder] != 0, "not for sale");
+        uint256 amount = msg.value.mul(1000000000000000000).div(pricePerToken[address(_token)][_holder]);
         require(amount > _token.granularity(), "not enough ether paid");
-        uint256 value = amount.mul(pricePerToken[_token][_holder]).div(1000000000000000000);
+        uint256 value = amount.mul(pricePerToken[address(_token)][_holder]).div(1000000000000000000);
         require(value == msg.value, "non-integer number of tokens purchased");
         return amount;
     }
@@ -67,7 +67,7 @@ contract FixedPriceSeller {
     /**
      * State update to carry out after sending tokens
      */
-    function postSend(address _holder) internal {
+    function postSend(address payable _holder) internal {
         _holder.transfer(msg.value);
     }
 }

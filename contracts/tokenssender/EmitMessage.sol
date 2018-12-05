@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensSender.sol';
 import '../registry/ERC820Implementer.sol';
@@ -38,7 +38,7 @@ contract EmitMessage is ERC777TokensSender, ERC820Implementer {
      * setMessage sets a message.  If recipient is 0 then this message will
      * apply for all sends from this holder.
      */
-    function setMessage(address _recipient, string _message) public {
+    function setMessage(address _recipient, string calldata _message) external {
         messages[msg.sender][_recipient] = _message;
         emit MessageSet(msg.sender, _recipient, _message);
     }
@@ -46,26 +46,26 @@ contract EmitMessage is ERC777TokensSender, ERC820Implementer {
     /**
      * ClearMessage clears a message.
      */
-    function clearMessage(address _recipient) public {
+    function clearMessage(address _recipient) external {
         messages[msg.sender][_recipient] = "";
         emit MessageCleared(msg.sender, _recipient);
     }
 
-    function getMessage(address _holder, address _recipient) public constant returns (string) {
+    function getMessage(address _holder, address _recipient) external view returns (string memory) {
         return messages[_holder][_recipient];
     }
 
     /**
      * Emit a message if found
      */
-    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (operator, amount, data, operatorData);
 
         string memory message = messages[holder][recipient];
         if (bytes(message).length > 0) {
             emit Message(holder, recipient, message);
         } else {
-            message = messages[holder][0];
+            message = messages[holder][address(0)];
             if (bytes(message).length > 0) {
                 emit Message(holder, recipient, message);
             }

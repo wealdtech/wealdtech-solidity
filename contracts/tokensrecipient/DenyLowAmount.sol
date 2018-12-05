@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensRecipient.sol';
 import '../registry/ERC820Implementer.sol';
@@ -32,17 +32,17 @@ contract DenyLowAmount is ERC777TokensRecipient, ERC820Implementer {
         implementInterface("ERC777TokensRecipient");
     }
 
-    function setMinimumAmount(address token, uint256 amount) public {
+    function setMinimumAmount(address token, uint256 amount) external {
         minimumAmounts[msg.sender][token] = amount;
         emit MinimumAmountSet(msg.sender, token, amount);
     }
 
-    function clearMinimumAmount(address token) public {
+    function clearMinimumAmount(address token) external {
         minimumAmounts[msg.sender][token] = 0;
         emit MinimumAmountCleared(msg.sender, token);
     }
 
-    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes data, bytes operatorData) public {
+    function tokensReceived(address operator, address holder, address recipient, uint256 amount, bytes calldata data, bytes calldata operatorData) external {
         (operator, holder, data, operatorData);
         require(amount > minimumAmounts[recipient][msg.sender], "transfer value too low to be accepted");
     }

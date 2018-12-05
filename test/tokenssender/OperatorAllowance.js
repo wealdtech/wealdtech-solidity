@@ -1,28 +1,28 @@
 'use strict';
 
 const asserts = require('../helpers/asserts.js');
+const erc820 = require('../helpers/erc820.js');
 const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const OperatorAllowance = artifacts.require('OperatorAllowance');
-const ERC820Registry = artifacts.require('ERC820Registry');
 
 contract('OperatorAllowance', accounts => {
     var erc777Instance;
     var erc820Instance;
     var instance;
 
-    const granularity = web3.toBigNumber('10000000000000000');
-    const initialSupply = granularity.mul('10000000');
+    const granularity = web3.utils.toBN('10000000000000000');
+    const initialSupply = granularity.mul(web3.utils.toBN('10000000'));
 
     let tokenBalances = {};
-    tokenBalances[accounts[0]] = web3.toBigNumber(0);
-    tokenBalances[accounts[1]] = web3.toBigNumber(0);
-    tokenBalances[accounts[2]] = web3.toBigNumber(0);
+    tokenBalances[accounts[0]] = web3.utils.toBN(0);
+    tokenBalances[accounts[1]] = web3.utils.toBN(0);
+    tokenBalances[accounts[2]] = web3.utils.toBN(0);
 
     it('sets up', async function() {
-        erc820Instance = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
+        erc820Instance = await erc820.instance();
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });
@@ -33,8 +33,8 @@ contract('OperatorAllowance', accounts => {
         await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // accounts[1] is our test source address so send it some tokens
-        const amount = granularity.mul(100);
-        await erc777Instance.send(accounts[1], amount, '', {
+        const amount = granularity.mul(web3.utils.toBN('100'));
+        await erc777Instance.send(accounts[1], amount, [], {
             from: accounts[0]
         });
         tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(amount);
@@ -50,19 +50,19 @@ contract('OperatorAllowance', accounts => {
 
     it('sets and resets allowances', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
         // Set up an allowance of 10*granularity tokens
-        const amount = granularity.mul(10);
+        const amount = granularity.mul(web3.utils.toBN('10'));
         await instance.setAllowance(accounts[3], erc777Instance.address, 0, amount, {
             from: accounts[1]
         });
         assert.equal((await instance.getAllowance(accounts[1], accounts[3], erc777Instance.address)).toString(10), amount.toString(10));
 
         // Change the allowance to 11*granularity tokens
-        const newAmount = granularity.mul(11);
+        const newAmount = granularity.mul(web3.utils.toBN('11'));
         await instance.setAllowance(accounts[3], erc777Instance.address, amount, newAmount, {
             from: accounts[1]
         });
@@ -70,7 +70,7 @@ contract('OperatorAllowance', accounts => {
 
         // Attempt to change the allowance with an incorrect current allowance
         await truffleAssert.reverts(
-                instance.setAllowance(accounts[3], erc777Instance.address, granularity.mul(10), granularity.mul(20) , {
+                instance.setAllowance(accounts[3], erc777Instance.address, granularity.mul(web3.utils.toBN('10')), granularity.mul(web3.utils.toBN('20')) , {
                     from: accounts[1]
                 }), 'current allowance incorrect');
 
@@ -81,19 +81,19 @@ contract('OperatorAllowance', accounts => {
         assert.equal((await instance.getAllowance(accounts[1], accounts[3], erc777Instance.address)).toString(10), 0);
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
     });
 
     it('handles allowances accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
         // Set up an allowance of 10*granularity tokens
-        const amount = granularity.mul(10);
+        const amount = granularity.mul(web3.utils.toBN('10'));
         await instance.setAllowance(accounts[3], erc777Instance.address, 0, amount, {
             from: accounts[1]
         });
@@ -106,8 +106,8 @@ contract('OperatorAllowance', accounts => {
         });
 
         // Operator transfer 5*granularity tokens from accounts[1] to accounts[2] 
-        const transferAmount =granularity.mul(5);
-        await erc777Instance.operatorSend(accounts[1], accounts[2], transferAmount, '', '', {
+        const transferAmount =granularity.mul(web3.utils.toBN('5'));
+        await erc777Instance.operatorSend(accounts[1], accounts[2], transferAmount, [], [], {
             from: accounts[3]
         });
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(transferAmount);
@@ -116,7 +116,7 @@ contract('OperatorAllowance', accounts => {
 
         // Attempt to transfer 6*granularity tokens from accounts[1] to accounts[2] - should fail due to lack of allowance
         await truffleAssert.reverts(
-                erc777Instance.operatorSend(accounts[1], accounts[2], granularity.mul(6), '', '', {
+                erc777Instance.operatorSend(accounts[1], accounts[2], granularity.mul(web3.utils.toBN('6')), [], [], {
                     from: accounts[3]
                 }), 'allowance too low');
 
@@ -126,7 +126,7 @@ contract('OperatorAllowance', accounts => {
         });
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
     });

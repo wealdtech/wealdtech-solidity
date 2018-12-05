@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import 'erc820/contracts/ERC820ImplementerInterface.sol';
 
@@ -17,7 +17,7 @@ contract ERC820Implementer is ERC820ImplementerInterface {
     /**
      * implementInterface provides an easy way to note support of an interface
      */
-    function implementInterface(string _interface) public {
+    function implementInterface(string memory _interface) public {
         implemented[keccak256(abi.encodePacked(_interface))] = true;
     }
 

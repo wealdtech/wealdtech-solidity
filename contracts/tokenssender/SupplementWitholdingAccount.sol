@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import '../math/SafeMath.sol';
 import '../token/ERC777TokensSender.sol';
@@ -50,11 +50,11 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
     /**
      * setSuplement sets an account and percentage to which to send tokens
      * @param _target the address to which to send tokens
-     * @param _percentage the percentage of additional tokens ot send,
+     * @param _percentage the percentage of additional tokens to send,
      *        in 1/10000s of a percentage
      */
-    function setSupplement(address _target, uint16 _percentage) public {
-        require(_target != 0, "target address cannot be 0");
+    function setSupplement(address _target, uint16 _percentage) external {
+        require(_target != address(0), "target address cannot be 0");
         accounts[msg.sender] = _target;
         percentages[msg.sender] = _percentage;
         emit SupplementSet(msg.sender, _target, _percentage);
@@ -63,16 +63,16 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC820Implementer {
     /**
      * removeSupplement removes a supplement
      */
-    function removeSupplement() public {
-        accounts[msg.sender] = 0;
+    function removeSupplement() external {
+        accounts[msg.sender] = address(0);
         percentages[msg.sender] = 0;
         emit SupplementRemoved(msg.sender);
     }
 
-    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes data, bytes operatorData) public {
+    function tokensToSend(address operator, address holder, address recipient, uint256 value, bytes calldata data, bytes calldata operatorData) external {
         (operator);
 
-        require(accounts[holder] != 0, "target address not set");
+        require(accounts[holder] != address(0), "target address not set");
 
         // Ignore tokens already being sent to the target account
         if (recipient == accounts[holder]) {

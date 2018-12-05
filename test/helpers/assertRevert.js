@@ -1,6 +1,5 @@
 module.exports = function(error, msg) {
   if (error.message.search('revert') == -1) {
-console.log('********************************', error.message);
     assert.fail('Call expected to revert; error was ' + error);
   }
   if (msg) {

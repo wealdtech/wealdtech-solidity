@@ -14,7 +14,7 @@ contract('Authorised', accounts => {
 
   it('cannot carry out an authorised action', async function() {
     try {
-        await instance.setInt(5, '', {from: accounts[1]});
+        await instance.setInt(5, '0x', {from: accounts[1]});
         assert.fail();
     } catch(error) {
         assertRevert(error);
@@ -24,7 +24,7 @@ contract('Authorised', accounts => {
   it('can authorise an action with suitable signature', async function() {
     // Create and sign an action allowing accounts[1] to set int values
     const actionHash = sha3(accounts[1], await instance.ACTION_SET_INT());
-    const signature = await web3.eth.sign(accounts[0], actionHash);
+    const signature = await web3.eth.sign(actionHash, accounts[0]);
 
     await instance.setInt(5, signature, {from: accounts[1]});
     assert.equal(await instance.intValue(), 5);
@@ -35,7 +35,7 @@ contract('Authorised', accounts => {
   it('can only carry out an unrepeatable action once', async function() {
     // Create and sign an action allowing accounts[1] to set int value once only
     const actionHash = sha3(accounts[1], await instance.ACTION_SET_INT_ONCE());
-    const signature = await web3.eth.sign(accounts[0], actionHash);
+    const signature = await web3.eth.sign(actionHash, accounts[0]);
 
     await instance.setInt(7, signature, {from: accounts[1]});
     assert.equal(await instance.intValue(), 7);
@@ -50,7 +50,7 @@ contract('Authorised', accounts => {
   it('can authorise an action with a value', async function() {
     // Create and sign an action allowing accounts[1] to set a specific int value
     const actionHash = sha3(accounts[1], await instance.ACTION_SET_INT(), '0x0000000000000000000000000000000000000000000000000000000000000008');
-    const signature = await web3.eth.sign(accounts[0], actionHash);
+    const signature = await web3.eth.sign(actionHash, accounts[0]);
 
     await instance.setInt(8, signature, {from: accounts[1]});
     assert.equal(await instance.intValue(), 8);
@@ -65,7 +65,7 @@ contract('Authorised', accounts => {
   it('can only carry out an unrepeatable action with a value once', async function() {
     // Create and sign an action allowing accounts[1] to set a specific int value once
     const actionHash = sha3(accounts[1], await instance.ACTION_SET_INT_ONCE(), '0x0000000000000000000000000000000000000000000000000000000000000009');
-    const signature = await web3.eth.sign(accounts[0], actionHash);
+    const signature = await web3.eth.sign(actionHash, accounts[0]);
 
     await instance.setInt(9, signature, {from: accounts[1]});
     assert.equal(await instance.intValue(), 9);
@@ -80,7 +80,7 @@ contract('Authorised', accounts => {
   it('can add another authoriser', async function() {
     // Create and sign an action allowing accounts[1] to set int values
     const actionHash = sha3(accounts[1], await instance.ACTION_SET_INT());
-    const signature = await web3.eth.sign(accounts[2], actionHash);
+    const signature = await web3.eth.sign(actionHash, accounts[2]);
 
     // Ensure the signature is not accepted as the signer is not an authoriser
     try {
@@ -101,7 +101,7 @@ contract('Authorised', accounts => {
   it('can remove an authoriser', async function() {
     // Create and sign an action allowing accounts[1] to set int values
     const actionHash = sha3(accounts[1], await instance.ACTION_SET_INT());
-    const signature = await web3.eth.sign(accounts[2], actionHash);
+    const signature = await web3.eth.sign(actionHash, accounts[2]);
 
     // Ensure the signature is accepted
     await instance.setInt(11, signature, {from: accounts[1]});

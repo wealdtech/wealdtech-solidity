@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import 'erc820/contracts/ERC820Client.sol';
 import './IERC777.sol';
@@ -46,9 +46,9 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
     using SafeMath for uint256;
 
     // Definition for the token
-    string public name;
-    string public symbol;
-    uint256 public granularity;
+    string private __name;
+    string private __symbol;
+    uint256 private __granularity;
     // The store for this token's allocations
     SimpleTokenStore public store;
 
@@ -89,21 +89,21 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      *        pre-existing token store)
      */
     constructor(uint256 _version,
-                string _name,
-                string _symbol,
+                string memory _name,
+                string memory _symbol,
                 uint256 _granularity,
                 uint256 _initialSupply,
-                address[] _defaultOperators,
+                address[] memory _defaultOperators,
                 address _store)
       Managed(_version)
       public
     {
-        name = _name;
-        symbol = _symbol;
-        granularity = _granularity;
+        __name = _name;
+        __symbol = _symbol;
+        __granularity = _granularity;
 
         require(_granularity > 0, "granularity must be greater than 0");
-        if (_store == 0) {
+        if (_store == address(0)) {
             store = new SimpleTokenStore();
             if (_initialSupply > 0) {
                 require(_initialSupply % _granularity == 0, "initial supply must be a multiple of granularity");
@@ -126,7 +126,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
     /**
      * This contract does not accept funds, so revert.
      */
-    function () public payable {
+    function () external {
         revert();
     }
 
@@ -137,7 +137,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _operatorData arbitrary data provided by the operator
      * @notice requires the PERM_MINT permission
      */
-    function mint(address _to, uint256 _amount, bytes _operatorData) public
+    function mint(address _to, uint256 _amount, bytes memory _operatorData) public
         ifPermitted(msg.sender, PERM_MINT)
         ifInState(State.Active)
     {
@@ -158,7 +158,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * burn existing tokens.
      * @param _amount the number of tokens to burn
      */
-    function burn(uint256 _amount, bytes _data) public
+    function burn(uint256 _amount, bytes memory _data) public
         ifInState(State.Active)
     {
         _burn(msg.sender, msg.sender, _amount, _data, "");
@@ -171,7 +171,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _data arbitrary data provided by the holder
      * @param _operatorData arbitrary data provided by the operator
      */
-    function operatorBurn(address _holder, uint256 _amount, bytes _data, bytes _operatorData) public
+    function operatorBurn(address _holder, uint256 _amount, bytes memory _data, bytes memory _operatorData) public
       ifInState(State.Active)
     {
         _burn(msg.sender, _holder, _amount, _data, _operatorData);
@@ -185,9 +185,9 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param data arbitrary data provided by the holder
      * @param operatorData arbitrary data provided by the operator
      */
-    function _burn(address operator, address holder, uint256 amount, bytes data, bytes operatorData) internal {
+    function _burn(address operator, address holder, uint256 amount, bytes memory data, bytes memory operatorData) internal {
         // Ensure that the amount is a multiple of granularity
-        require(amount % granularity == 0, "amount must be a multiple of granularity");
+        require(amount % __granularity == 0, "amount must be a multiple of granularity");
 
         // Ensure that there are enough tokens to burn
         require(amount <= store.balanceOf(holder), "not enough tokens in holder's account");
@@ -197,8 +197,8 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
 
         // Call token control contract if present
         address senderImplementation = interfaceAddr(holder, "ERC777TokensSender");
-        if (senderImplementation != 0) {
-            ERC777TokensSender(senderImplementation).tokensToSend(operator, holder, 0, amount, data, operatorData);
+        if (senderImplementation != address(0)) {
+            ERC777TokensSender(senderImplementation).tokensToSend(operator, holder, address(0), amount, data, operatorData);
         }
 
         // Transfer
@@ -215,16 +215,16 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * obtain the name of this token.
      * @return name of this token.
      */
-    function name() public constant ifInState(State.Active) returns (string) {
-        return name;
+    function name() public view ifInState(State.Active) returns (string memory) {
+        return __name;
     }
 
     /**
      * obtain the symbol of this token.
      * @return symbol of this token.
      */
-    function symbol() public constant ifInState(State.Active) returns (string) {
-        return symbol;
+    function symbol() public view ifInState(State.Active) returns (string memory) {
+        return __symbol;
     }
 
     /**
@@ -232,15 +232,15 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * burning and transfers must be an integer multiple of this amount.
      * @return granularity of this token.
      */
-    function granularity() public constant ifInState(State.Active) returns (uint256) {
-        return granularity;
+    function granularity() public view ifInState(State.Active) returns (uint256) {
+        return __granularity;
     }
 
     /**
      * obtain the total supply of this token.
      * @return total supply of this token.
      */
-    function totalSupply() public constant ifInState(State.Active) returns (uint256) {
+    function totalSupply() public view ifInState(State.Active) returns (uint256) {
         return store.totalSupply();
     }
 
@@ -249,7 +249,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _tokenHolder the address of the holder of the tokens
      * @return balance of thie given holder
      */
-    function balanceOf(address _tokenHolder) public constant ifInState(State.Active) returns (uint256) {
+    function balanceOf(address _tokenHolder) public view ifInState(State.Active) returns (uint256) {
         return store.balanceOf(_tokenHolder);
     }
 
@@ -259,7 +259,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _amount the number of tokens to send.  Must be a multiple of granularity
      * @param _data arbitrary data provided by the holder
      */
-    function send(address _to, uint256 _amount, bytes _data) public
+    function send(address _to, uint256 _amount, bytes memory _data) public
       ifInState(State.Active)
     {
         _send(msg.sender, _to, _amount, _data, msg.sender, "");
@@ -318,7 +318,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _data arbitrary data provided by the holder
      * @param _operatorData arbitrary data provided by the operator
      */
-    function operatorSend(address _from, address _to, uint256 _amount, bytes _data, bytes _operatorData) public
+    function operatorSend(address _from, address _to, uint256 _amount, bytes memory _data, bytes memory _operatorData) public
       ifInState(State.Active)
     {
         _send(_from, _to, _amount, _data, msg.sender, _operatorData);
@@ -335,16 +335,16 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param amount the number of tokens to be transferred
      * @param operatorData arbitrary data provided by the operator
      */
-    function _mint(address operator, address to, uint256 amount, bytes operatorData) internal {
+    function _mint(address operator, address to, uint256 amount, bytes memory operatorData) internal {
         // Ensure that the amount is a multiple of granularity
-        require(amount % granularity == 0, "amount must be a multiple of granularity");
+        require(amount % __granularity == 0, "amount must be a multiple of granularity");
 
         // Mint
         store.mint(to, amount);
 
         // Call token control contract if present
         address recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
-        if (recipientImplementation == 0) {
+        if (recipientImplementation == address(0)) {
             // The target does not implement ERC777TokensRecipient
             require(!isContract(to), "cannot mint tokens to contract that does not explicitly receive them");
         } else {
@@ -363,12 +363,12 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param operator the address of the entity invoking the transfer
      * @param operatorData arbitrary data provided by the operator
      */
-    function _send(address from, address to, uint256 amount, bytes data, address operator, bytes operatorData) internal {
+    function _send(address from, address to, uint256 amount, bytes memory data, address operator, bytes memory operatorData) internal {
         // Ensure that the to address is initialised
-        require(to != 0, "tokens cannot be sent to the 0 address");
+        require(to != address(0), "tokens cannot be sent to the 0 address");
 
         // Ensure that the amount is a multiple of granularity
-        require(amount % granularity == 0, "amount must be a multiple of granularity");
+        require(amount % __granularity == 0, "amount must be a multiple of granularity");
 
         // Ensure that there are enough tokens to send
         require(amount <= store.balanceOf(from), "not enough tokens in holder's account");
@@ -378,7 +378,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
 
         // Call token control contract if present
         address senderImplementation = interfaceAddr(from, "ERC777TokensSender");
-        if (senderImplementation != 0) {
+        if (senderImplementation != address(0)) {
             ERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, data, operatorData);
         }
 
@@ -387,7 +387,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
 
         // Call token control contract if present
         address recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
-        if (recipientImplementation == 0) {
+        if (recipientImplementation == address(0)) {
             // The target does not implement ERC777TokensRecipient
             require(!isContract(to), "cannot send tokens to contract that does not explicitly receive them");
         } else {
@@ -400,8 +400,8 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
     /**
      * Check if an address is a contract
      */
-    function isContract(address _addr) internal constant returns(bool) {
-        if (_addr == 0) {
+    function isContract(address _addr) internal view returns(bool) {
+        if (_addr == address(0)) {
             return false;
         }
         uint size;
@@ -440,7 +440,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      */
     function commitUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
         // Remove ourself from the list of superusers of the token store
-        store.setPermission(this, PERM_SUPERUSER, false);
+        store.setPermission(address(this), PERM_SUPERUSER, false);
         super.commitUpgrade();
     }
 
@@ -452,7 +452,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
         // Remove the contract from the list of superusers of the token store.
         // Note that if this is called after commitUpgrade() then it will fail
         // as we will no longer have permission to do this.
-        if (supercededBy != 0) {
+        if (supercededBy != address(0)) {
             store.setPermission(supercededBy, PERM_SUPERUSER, false);
         }
         super.revertUpgrade();

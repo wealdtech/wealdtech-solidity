@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017, 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -33,5 +33,5 @@ interface ERC777TokensSender {
       * @param data is data supplied by the user for the transfer
       * @param operatorData is data supplied by the operator for the transfer
       */
-    function tokensToSend(address operator, address from, address to, uint256 amount, bytes data, bytes operatorData) public;
+    function tokensToSend(address operator, address from, address to, uint256 amount, bytes calldata data, bytes calldata operatorData) external;
 }

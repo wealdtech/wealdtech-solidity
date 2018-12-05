@@ -6,7 +6,7 @@ module.exports = {
             assert.equal((await tokenContract.balanceOf(account)).toString(), balances[account].toString());
         }
         // Also compare total supply
-        const totalSupply = Object.values(balances).reduce((a, b) => a.add(b), web3.toBigNumber('0'));
+        const totalSupply = Object.values(balances).reduce((a, b) => a.add(b), web3.utils.toBN('0'));
         assert.equal((await tokenContract.totalSupply()).toString(), totalSupply.toString(), 'Total supply is incorrect');
     }
 }

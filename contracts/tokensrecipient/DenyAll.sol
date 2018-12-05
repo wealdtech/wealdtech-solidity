@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensRecipient.sol';
 import '../registry/ERC820Implementer.sol';
@@ -25,7 +25,7 @@ contract DenyAll is ERC777TokensRecipient, ERC820Implementer {
         implementInterface("ERC777TokensRecipient");
     }
 
-    function tokensReceived(address operator, address from, address to, uint256 value, bytes data, bytes operatorData) public {
+    function tokensReceived(address operator, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external {
         (from, to, value, data, operator, operatorData);
         revert();
     }

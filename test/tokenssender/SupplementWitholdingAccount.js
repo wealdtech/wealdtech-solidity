@@ -1,29 +1,29 @@
 'use strict';
 
 const asserts = require('../helpers/asserts.js');
+const erc820 = require('../helpers/erc820.js');
 const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const SupplementWitholdingAccount = artifacts.require('SupplementWitholdingAccount');
-const ERC820Registry = artifacts.require('ERC820Registry');
 
 contract('SupplementWitholdingAccount', accounts => {
     var erc777Instance;
     var erc820Instance;
     var instance;
 
-    const granularity = web3.toBigNumber('10000000000000000');
-    const initialSupply = granularity.mul('10000000');
+    const granularity = web3.utils.toBN('10000000000000000');
+    const initialSupply = granularity.mul(web3.utils.toBN('10000000'));
 
     let tokenBalances = {};
-    tokenBalances[accounts[0]] = web3.toBigNumber(0);
-    tokenBalances[accounts[1]] = web3.toBigNumber(0);
-    tokenBalances[accounts[2]] = web3.toBigNumber(0);
-    tokenBalances[accounts[3]] = web3.toBigNumber(0);
+    tokenBalances[accounts[0]] = web3.utils.toBN(0);
+    tokenBalances[accounts[1]] = web3.utils.toBN(0);
+    tokenBalances[accounts[2]] = web3.utils.toBN(0);
+    tokenBalances[accounts[3]] = web3.utils.toBN(0);
 
     it('sets up', async function() {
-        erc820Instance = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
-        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], 0, {
+        erc820Instance = await erc820.instance();
+        erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });
@@ -34,8 +34,8 @@ contract('SupplementWitholdingAccount', accounts => {
         await asserts.assertTokenBalances(erc777Instance, tokenBalances);
 
         // accounts[1] is our test source address so send it some tokens
-        const amount = granularity.mul(200);
-        await erc777Instance.send(accounts[1], amount, '', {
+        const amount = granularity.mul(web3.utils.toBN('200'));
+        await erc777Instance.send(accounts[1], amount, [], {
             from: accounts[0]
         });
         tokenBalances[accounts[0]] = tokenBalances[accounts[0]].sub(amount);
@@ -51,7 +51,7 @@ contract('SupplementWitholdingAccount', accounts => {
 
     it('supplements tokens accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
@@ -66,13 +66,13 @@ contract('SupplementWitholdingAccount', accounts => {
         });
 
         // Transfer 100*granularity tokens from accounts[1] to accounts[2]
-        const amount = granularity.mul(100);
-        await erc777Instance.send(accounts[2], amount, '', {
+        const amount = granularity.mul(web3.utils.toBN('100'));
+        await erc777Instance.send(accounts[2], amount, [], {
             from: accounts[1]
         });
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
         tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
-        const witholdingAmount =granularity.mul(15);
+        const witholdingAmount =granularity.mul(web3.utils.toBN('15'));
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(witholdingAmount);
         tokenBalances[accounts[3]] = tokenBalances[accounts[3]].add(witholdingAmount);
         await asserts.assertTokenBalances(erc777Instance, tokenBalances);
@@ -83,14 +83,14 @@ contract('SupplementWitholdingAccount', accounts => {
         });
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
     });
 
     it('supplements odd-granularity values accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
@@ -105,14 +105,14 @@ contract('SupplementWitholdingAccount', accounts => {
         });
 
         // Transfer 10*granularity tokens from accounts[1] to accounts[2]
-        const amount = granularity.mul(10);
-        await erc777Instance.send(accounts[2], amount, '', {
+        const amount = granularity.mul(web3.utils.toBN('10'));
+        await erc777Instance.send(accounts[2], amount, [], {
             from: accounts[1]
         });
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
         tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
         // Witholding should round up the 1.5 to 2 for granularity...
-        const witholdingAmount =granularity.mul(2);
+        const witholdingAmount =granularity.mul(web3.utils.toBN('2'));
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(witholdingAmount);
         tokenBalances[accounts[3]] = tokenBalances[accounts[3]].add(witholdingAmount);
         await asserts.assertTokenBalances(erc777Instance, tokenBalances);
@@ -123,7 +123,7 @@ contract('SupplementWitholdingAccount', accounts => {
         });
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.sha3('ERC777TokensSender'), 0, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
     });
