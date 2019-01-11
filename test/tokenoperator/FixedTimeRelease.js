@@ -62,20 +62,19 @@ contract('FixedTimeRelease', accounts => {
             from: accounts[1]
         });
 
-        assert.fail('TODO');
-//        const now = Math.round(new Date().getTime() / 1000) + (await evm.currentOffset()).result;
-//        const expiry = now + 60;
-//        // Allow everyone to empty the account after expiry
-//        await operator.setReleaseTimestamp(erc777Instance.address, expiry, {
-//            from: accounts[1]
-//        });
-//
-//        const amount = granularity.mul(web3.utils.toBN('5'));
-//        // Attempt to transfer tokens as accounts[3] from accounts[1] to accounts[2]
-//        await truffleAssert.reverts(
-//                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
-//                    from: accounts[3]
-//                }), 'not yet released');
+        const now = Math.round(new Date().getTime() / 1000) + (await evm.currentOffset()).result;
+        const expiry = now + 60;
+        // Allow everyone to empty the account after expiry
+        await operator.setReleaseTimestamp(erc777Instance.address, expiry, {
+            from: accounts[1]
+        });
+
+        const amount = granularity.mul(web3.utils.toBN('5'));
+        // Attempt to transfer tokens as accounts[3] from accounts[1] to accounts[2]
+        await truffleAssert.reverts(
+                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
+                    from: accounts[3]
+                }), 'not yet released');
     });
 
     it('cannot bring the release date forward', async function() {
@@ -89,19 +88,18 @@ contract('FixedTimeRelease', accounts => {
     });
 
     it('transfers after the release date', async function() {
-        assert.fail('TODO');
-//        // Expiry is 1 minute so go past that
-//        await evm.increaseTime(61);
-//        await evm.mine();
-//
-//        const amount = granularity.mul(web3.utils.toBN('5'));
-//        // Transfer tokens as accounts[3] from accounts[1] to accounts[2]
-//        await operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
-//            from: accounts[3]
-//        });
-//        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
-//        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
-//        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
+        // Expiry is 1 minute so go past that
+        await evm.increaseTime(61);
+        await evm.mine();
+
+        const amount = granularity.mul(web3.utils.toBN('5'));
+        // Transfer tokens as accounts[3] from accounts[1] to accounts[2]
+        await operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
+            from: accounts[3]
+        });
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
     });
 
     it('does not work when de-registered', async function() {

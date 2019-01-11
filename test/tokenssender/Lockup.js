@@ -48,18 +48,17 @@ contract('Lockup', accounts => {
             from: accounts[0]
         });
 
-        assert.fail('TODO');
-//        // Expiry is set to 1 day after the current time
-//        const now = Math.round(new Date().getTime() / 1000) + currentOffset().result;
-//        const expiry = now + 86400;
-//        await instance.setExpiry(erc777Instance.address, expiry, {
-//            from: accounts[1]
-//        });
+        // Expiry is set to 1 day after the current time
+        const now = Math.round(new Date().getTime() / 1000) + (await evm.currentOffset()).result;
+        const expiry = now + 86400;
+        await instance.setExpiry(erc777Instance.address, expiry, {
+            from: accounts[1]
+        });
     });
 
     it('sets up the operator', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.soliditySha3('ERC777TokensSender'), instance.address, {
+        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
@@ -83,25 +82,24 @@ contract('Lockup', accounts => {
     });
 
     it('transfers after the lockup expires', async function() {
-        assert.fail('TODO');
-//        // Go past expiry
-//        await evm.increaseTime(86401);
-//        await evm.mine();
-//
-//        const amount = granularity.mul(web3.utils.toBN('10'));
-//        await erc777Instance.send(accounts[2], amount, [], {
-//            from: accounts[1]
-//        });
-//        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
-//        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
-//        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
-//
-//        await erc777Instance.operatorSend(accounts[1], accounts[2], amount, [], [], {
-//            from: accounts[1]
-//        });
-//        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
-//        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
-//        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
+        // Go past expiry
+        await evm.increaseTime(86401);
+        await evm.mine();
+
+        const amount = granularity.mul(web3.utils.toBN('10'));
+        await erc777Instance.send(accounts[2], amount, [], {
+            from: accounts[1]
+        });
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
+
+        await erc777Instance.operatorSend(accounts[1], accounts[2], amount, [], [], {
+            from: accounts[1]
+        });
+        tokenBalances[accounts[1]] = tokenBalances[accounts[1]].sub(amount);
+        tokenBalances[accounts[2]] = tokenBalances[accounts[2]].add(amount);
+        await asserts.assertTokenBalances(erc777Instance, tokenBalances);
     });
 
     it('does not transfer more than the allowance', async function() {

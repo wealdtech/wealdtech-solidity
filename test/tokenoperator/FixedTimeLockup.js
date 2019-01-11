@@ -62,37 +62,32 @@ contract('FixedTimeLockup', accounts => {
             from: accounts[1]
         });
 
-        console.log('*******************');
-        console.log(await evm.currentOffset());
-        console.log('*******************');
-        assert.fail('TODO');
-//        const now = Math.round(new Date().getTime() / 1000) + (await evm.currentOffset()).result;
-//        const expiry = now + 60;
-//        // Allow eeryone to empty the account after expiry
-//        await operator.setReleaseTimestamp(erc777Instance.address, expiry, {
-//            from: accounts[1]
-//        });
-//
-//        const amount = granularity.mul(web3.utils.toBN('5'));
-//        await truffleAssert.reverts(
-//                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
-//                    from: accounts[3]
-//                }), 'not yet released');
+        const now = Math.round(new Date().getTime() / 1000) + (await evm.currentOffset()).result;
+        const expiry = now + 60;
+        // Allow everyone to empty the account after expiry
+        await operator.setReleaseTimestamp(erc777Instance.address, expiry, {
+            from: accounts[1]
+        });
+
+        const amount = granularity.mul(web3.utils.toBN('5'));
+        await truffleAssert.reverts(
+                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
+                    from: accounts[3]
+                }), 'not yet released');
     });
 
     it('does not transfer without an allowance', async function() {
-        assert.fail('TODO');
-//        // Expiry is 1 minute so go past that
-//        await evm.increaseTime(61);
-//        await evm.mine();
-//
-//        // But we don't have an allowance so expect this to fail
-//        const amount = granularity.mul(web3.utils.toBN('5'));
-//        // Attempt to transfer tokens as accounts[3] from accounts[1] to accounts[2]
-//        await truffleAssert.reverts(
-//                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
-//                    from: accounts[3]
-//                }), 'amount exceeds allowance');
+        // Expiry is 1 minute so go past that
+        await evm.increaseTime(61);
+        await evm.mine();
+
+        // But we don't have an allowance so expect this to fail
+        const amount = granularity.mul(web3.utils.toBN('5'));
+        // Attempt to transfer tokens as accounts[3] from accounts[1] to accounts[2]
+        await truffleAssert.reverts(
+                operator.send(erc777Instance.address, accounts[1], accounts[2], amount, {
+                    from: accounts[3]
+                }), 'amount exceeds allowance');
     });
 
     it('transfers after the release date and within the allowance', async function() {
