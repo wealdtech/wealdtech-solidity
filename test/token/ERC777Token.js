@@ -48,7 +48,7 @@ contract('ERC777Token', accounts => {
     });
 
     it('can mint tokens', async function() {
-        await instance.mint(accounts[1], granularity, [], {
+        await instance.mint(accounts[1], granularity, [], [], {
             from: accounts[0]
         });
         tokenBalances[accounts[1]] = tokenBalances[accounts[1]].add(granularity);
@@ -57,14 +57,14 @@ contract('ERC777Token', accounts => {
 
     it('cannot mint sub-granularity tokens', async function() {
         await truffleAssert.reverts(
-                instance.mint(accounts[1], granularity.add(web3.utils.toBN('1')), [], {
+                instance.mint(accounts[1], granularity.add(web3.utils.toBN('1')), [], [], {
                     from: accounts[0]
                 }), 'amount must be a multiple of granularity');
     });
 
     it('cannot mint tokens without permission', async function() {
         await truffleAssert.reverts(
-                instance.mint(accounts[1], granularity, [], {
+                instance.mint(accounts[1], granularity, [], [], {
                     from: accounts[1]
                 }));
     });
@@ -72,7 +72,7 @@ contract('ERC777Token', accounts => {
     it('can disable minting', async function() {
         await instance.disableMinting({from: accounts[0]});
         await truffleAssert.reverts(
-                instance.mint(accounts[1], granularity, [], {
+                instance.mint(accounts[1], granularity, [], [], {
                     from: accounts[0]
                 }), 'minting disabled');
     });

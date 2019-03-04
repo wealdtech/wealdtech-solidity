@@ -61,7 +61,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
     mapping(address=>mapping(address=>bool)) private operators;
 
     // Default operators, configured by the token contract creator
-    address[] public defaultOperators;
+    address[] private __defaultOperators;
     // Map version of default operators, to ease checking
     mapping(address=>bool) private defaultOperatorsMap;
     // Revoked default operators, configured by each holder
@@ -108,16 +108,16 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
             if (_initialSupply > 0) {
                 require(_initialSupply % _granularity == 0, "initial supply must be a multiple of granularity");
 
-                _mint(msg.sender, msg.sender, _initialSupply, "");
+                _mint(msg.sender, msg.sender, _initialSupply, "", "");
             }
         } else {
             store = SimpleTokenStore(_store);
         }
 
         // Store default operators as both list and map
-        defaultOperators = _defaultOperators;
-        for (uint256 i = 0; i < defaultOperators.length; i++) {
-            defaultOperatorsMap[defaultOperators[i]] = true;
+        __defaultOperators = _defaultOperators;
+        for (uint256 i = 0; i < __defaultOperators.length; i++) {
+            defaultOperatorsMap[__defaultOperators[i]] = true;
         }
 
         implementInterface("ERC777Token");
@@ -137,11 +137,11 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _operatorData arbitrary data provided by the operator
      * @notice requires the PERM_MINT permission
      */
-    function mint(address _to, uint256 _amount, bytes memory _operatorData) public
+    function mint(address _to, uint256 _amount, bytes memory _data, bytes memory _operatorData) public
         ifPermitted(msg.sender, PERM_MINT)
         ifInState(State.Active)
     {
-        _mint(msg.sender, _to, _amount, _operatorData);
+        _mint(msg.sender, _to, _amount, _data, _operatorData);
     }
 
     /**
@@ -158,7 +158,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * burn existing tokens.
      * @param _amount the number of tokens to burn
      */
-    function burn(uint256 _amount, bytes memory _data) public
+    function burn(uint256 _amount, bytes calldata _data) external
         ifInState(State.Active)
     {
         _burn(msg.sender, msg.sender, _amount, _data, "");
@@ -171,7 +171,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _data arbitrary data provided by the holder
      * @param _operatorData arbitrary data provided by the operator
      */
-    function operatorBurn(address _holder, uint256 _amount, bytes memory _data, bytes memory _operatorData) public
+    function operatorBurn(address _holder, uint256 _amount, bytes calldata _data, bytes calldata _operatorData) external
       ifInState(State.Active)
     {
         _burn(msg.sender, _holder, _amount, _data, _operatorData);
@@ -193,7 +193,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
         require(amount <= store.balanceOf(holder), "not enough tokens in holder's account");
 
         // Ensure that the operator is allowed to burn
-        require(operator == holder || isOperatorFor(operator, holder), "not allowed to burn");
+        require(operator == holder || this.isOperatorFor(operator, holder), "not allowed to burn");
 
         // Call token control contract if present
         address senderImplementation = interfaceAddr(holder, "ERC777TokensSender");
@@ -215,7 +215,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * obtain the name of this token.
      * @return name of this token.
      */
-    function name() public view ifInState(State.Active) returns (string memory) {
+    function name() external view ifInState(State.Active) returns (string memory) {
         return __name;
     }
 
@@ -223,7 +223,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * obtain the symbol of this token.
      * @return symbol of this token.
      */
-    function symbol() public view ifInState(State.Active) returns (string memory) {
+    function symbol() external view ifInState(State.Active) returns (string memory) {
         return __symbol;
     }
 
@@ -232,7 +232,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * burning and transfers must be an integer multiple of this amount.
      * @return granularity of this token.
      */
-    function granularity() public view ifInState(State.Active) returns (uint256) {
+    function granularity() external view ifInState(State.Active) returns (uint256) {
         return __granularity;
     }
 
@@ -240,7 +240,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * obtain the total supply of this token.
      * @return total supply of this token.
      */
-    function totalSupply() public view ifInState(State.Active) returns (uint256) {
+    function totalSupply() external view ifInState(State.Active) returns (uint256) {
         return store.totalSupply();
     }
 
@@ -249,8 +249,16 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _tokenHolder the address of the holder of the tokens
      * @return balance of thie given holder
      */
-    function balanceOf(address _tokenHolder) public view ifInState(State.Active) returns (uint256) {
+    function balanceOf(address _tokenHolder) external view ifInState(State.Active) returns (uint256) {
         return store.balanceOf(_tokenHolder);
+    }
+
+    /**
+     * obtain the list of default operators for this token.
+     * @return the list of default operators
+     */
+    function defaultOperators() external view ifInState(State.Active) returns (address[] memory) {
+        return __defaultOperators;
     }
 
     /**
@@ -259,7 +267,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _amount the number of tokens to send.  Must be a multiple of granularity
      * @param _data arbitrary data provided by the holder
      */
-    function send(address _to, uint256 _amount, bytes memory _data) public
+    function send(address _to, uint256 _amount, bytes calldata _data) external
       ifInState(State.Active)
     {
         _send(msg.sender, _to, _amount, _data, msg.sender, "");
@@ -270,7 +278,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      *      holder.
      * @param _operator the address of the third party
      */
-    function authorizeOperator(address _operator) public {
+    function authorizeOperator(address _operator) external {
         require(_operator != msg.sender, "not allowed to set yourself as an operator");
         if (defaultOperatorsMap[_operator]) {
             revokedDefaultOperators[msg.sender][_operator] = false;
@@ -286,7 +294,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      *      of a token holder.
      * @param _operator the address of the operator
      */
-    function revokeOperator(address _operator) public {
+    function revokeOperator(address _operator) external {
         require(_operator != msg.sender, "not allowed to remove yourself as an operator");
         if (defaultOperatorsMap[_operator]) {
             revokedDefaultOperators[msg.sender][_operator] = true;
@@ -306,7 +314,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @return true if the operator is authorized for the given token holder,
      *         otherwise false.
      */
-    function isOperatorFor(address _operator, address _tokenHolder) public view returns (bool) {
+    function isOperatorFor(address _operator, address _tokenHolder) external view returns (bool) {
         return (operators[_tokenHolder][_operator] || (defaultOperatorsMap[_operator] && !revokedDefaultOperators[_tokenHolder][_operator]));
     }
 
@@ -318,7 +326,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param _data arbitrary data provided by the holder
      * @param _operatorData arbitrary data provided by the operator
      */
-    function operatorSend(address _from, address _to, uint256 _amount, bytes memory _data, bytes memory _operatorData) public
+    function operatorSend(address _from, address _to, uint256 _amount, bytes calldata _data, bytes calldata _operatorData) external
       ifInState(State.Active)
     {
         _send(_from, _to, _amount, _data, msg.sender, _operatorData);
@@ -335,7 +343,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
      * @param amount the number of tokens to be transferred
      * @param operatorData arbitrary data provided by the operator
      */
-    function _mint(address operator, address to, uint256 amount, bytes memory operatorData) internal {
+    function _mint(address operator, address to, uint256 amount, bytes memory data, bytes memory operatorData) internal {
         // Ensure that the amount is a multiple of granularity
         require(amount % __granularity == 0, "amount must be a multiple of granularity");
 
@@ -351,7 +359,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
             ERC777TokensRecipient(recipientImplementation).tokensReceived(operator, address(0), to, amount, "", operatorData);
         }
 
-        emit Minted(operator, to, amount, operatorData);
+        emit Minted(operator, to, amount, data, operatorData);
     }
 
     /**
@@ -374,7 +382,7 @@ contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
         require(amount <= store.balanceOf(from), "not enough tokens in holder's account");
 
         // Ensure that the operator is allowed to send
-        require(operator == from || isOperatorFor(operator, from), "not allowed to send");
+        require(operator == from || this.isOperatorFor(operator, from), "not allowed to send");
 
         // Call token control contract if present
         address senderImplementation = interfaceAddr(from, "ERC777TokensSender");
