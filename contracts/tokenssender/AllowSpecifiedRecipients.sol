@@ -29,7 +29,7 @@ contract AllowSpecifiedRecipients is ERC777TokensSender, ERC1820Implementer {
     event RecipientCleared(address holder, address recipient);
 
     constructor() public {
-        implementInterface("ERC777TokensSender");
+        implementInterface("ERC777TokensSender", false);
     }
 
     /**

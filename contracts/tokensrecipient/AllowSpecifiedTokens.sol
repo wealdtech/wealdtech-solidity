@@ -30,7 +30,7 @@ contract AllowSpecifiedTokens is ERC777TokensRecipient, ERC1820Implementer {
     event TokenRemoved(address recipient, address token);
 
     constructor() public {
-        implementInterface("ERC777TokensRecipient");
+        implementInterface("ERC777TokensRecipient", false);
     }
 
     function addToken(address token) external {

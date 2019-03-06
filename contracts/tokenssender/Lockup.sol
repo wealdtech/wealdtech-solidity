@@ -32,7 +32,7 @@ contract Lockup is ERC777TokensSender, ERC1820Implementer {
     event LockupExpires(address token, address holder, uint256 expiry);
 
     constructor() public {
-        implementInterface("ERC777TokensSender");
+        implementInterface("ERC777TokensSender", false);
     }
 
     /*

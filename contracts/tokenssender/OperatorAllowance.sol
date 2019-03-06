@@ -31,7 +31,7 @@ contract OperatorAllowance is ERC777TokensSender, ERC1820Implementer {
     event AllowanceSet(address holder, address operator, address token, uint256 allowance);
 
     constructor() public {
-        implementInterface("ERC777TokensSender");
+        implementInterface("ERC777TokensSender", false);
     }
 
     /**

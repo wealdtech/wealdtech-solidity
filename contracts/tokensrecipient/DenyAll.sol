@@ -22,7 +22,7 @@ import '../registry/ERC1820Implementer.sol';
  */ 
 contract DenyAll is ERC777TokensRecipient, ERC1820Implementer {
     constructor() public {
-        implementInterface("ERC777TokensRecipient");
+        implementInterface("ERC777TokensRecipient", false);
     }
 
     function tokensReceived(address operator, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external {

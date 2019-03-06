@@ -44,7 +44,7 @@ contract SupplementWitholdingAccount is ERC777TokensSender, ERC1820Implementer {
     event SupplementRemoved(address holder);
 
     constructor() public {
-        implementInterface("ERC777TokensSender");
+        implementInterface("ERC777TokensSender", false);
     }
 
     /**

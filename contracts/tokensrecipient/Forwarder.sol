@@ -35,7 +35,7 @@ contract Forwarder is ERC777TokensRecipient, ERC1820Implementer {
     event ForwardingAddressCleared(address recipient);
 
     constructor() public {
-        implementInterface("ERC777TokensRecipient");
+        implementInterface("ERC777TokensRecipient", false);
     }
 
     function setForwarder(address target) external {

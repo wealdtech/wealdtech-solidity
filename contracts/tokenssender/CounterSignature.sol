@@ -38,7 +38,7 @@ contract CounterSignature is ERC777TokensSender, ERC1820Implementer {
     event CounterSignatoryCleared(address holder);
 
     constructor() public {
-        implementInterface("ERC777TokensSender");
+        implementInterface("ERC777TokensSender", false);
     }
 
     /**

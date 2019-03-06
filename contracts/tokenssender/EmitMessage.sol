@@ -31,7 +31,7 @@ contract EmitMessage is ERC777TokensSender, ERC1820Implementer {
     event Message(address holder, address recipient, string message);
 
     constructor() public {
-        implementInterface("ERC777TokensSender");
+        implementInterface("ERC777TokensSender", false);
     }
 
     /**

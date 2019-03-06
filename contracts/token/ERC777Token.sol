@@ -120,7 +120,7 @@ contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
             defaultOperatorsMap[__defaultOperators[i]] = true;
         }
 
-        implementInterface("ERC777Token");
+        implementInterface("ERC777Token", true);
     }
 
     /**

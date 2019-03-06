@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 
+import 'erc1820/contracts/ERC1820Client.sol';
 import 'erc1820/contracts/ERC1820ImplementerInterface.sol';
 
 
@@ -11,14 +12,20 @@ import 'erc1820/contracts/ERC1820ImplementerInterface.sol';
  *
  * @author Jim McDonald
  */
-contract ERC1820Implementer is ERC1820ImplementerInterface {
+contract ERC1820Implementer is ERC1820Client, ERC1820ImplementerInterface {
     mapping(bytes32=>bool) implemented;
 
     /**
-     * implementInterface provides an easy way to note support of an interface
+     * implementInterface provides an easy way to note support of an interface.
+     * @param _interface the name of the interface the contract supports
+     * @param _register if the implementation should be registered with the ERC1820 registry
      */
-    function implementInterface(string memory _interface) public {
-        implemented[keccak256(abi.encodePacked(_interface))] = true;
+    function implementInterface(string memory _interface, bool _register) public {
+        bytes32 hash = keccak256(abi.encodePacked(_interface));
+        implemented[hash] = true;
+        if (_register) {
+            setInterfaceImplementation(_interface, address(this));
+        }
     }
 
     /**
