@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensSender.sol';
-import '../registry/ERC820Implementer.sol';
+import '../registry/ERC1820Implementer.sol';
 
 
 /**
@@ -19,7 +19,7 @@ import '../registry/ERC820Implementer.sol';
  *         some of your ERC-777 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */
-contract EmitMessage is ERC777TokensSender, ERC820Implementer {
+contract EmitMessage is ERC777TokensSender, ERC1820Implementer {
     // Holder=>recipient=>log
     mapping(address=>mapping(address=>string)) public messages;
 

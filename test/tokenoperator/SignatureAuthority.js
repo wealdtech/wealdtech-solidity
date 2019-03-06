@@ -5,7 +5,6 @@ const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const SignatureAuthority = artifacts.require('SignatureAuthority');
-const ERC820Registry = artifacts.require('ERC820Registry');
 
 contract('SignatureAuthority', accounts => {
     var erc777Instance;

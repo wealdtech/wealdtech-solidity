@@ -1,10 +1,10 @@
 pragma solidity ^0.5.0;
 
-import 'erc820/contracts/ERC820Client.sol';
+import 'erc1820/contracts/ERC1820Client.sol';
 import './IERC777.sol';
 import '../lifecycle/Managed.sol';
 import '../math/SafeMath.sol';
-import '../registry/ERC820Implementer.sol';
+import '../registry/ERC1820Implementer.sol';
 import './SimpleTokenStore.sol';
 import './ERC777TokensRecipient.sol';
 import './ERC777TokensSender.sol';
@@ -42,7 +42,7 @@ import './ERC777TokensSender.sol';
  *
  * @author Jim McDonald
  */
-contract ERC777Token is IERC777, ERC820Client, ERC820Implementer, Managed {
+contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
     using SafeMath for uint256;
 
     // Definition for the token

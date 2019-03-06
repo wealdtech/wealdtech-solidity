@@ -1,6 +1,6 @@
 'use strict';
 
-const erc820 = require('../helpers/erc820.js');
+const erc1820 = require('../helpers/erc1820.js');
 const truffleAssert = require('truffle-assertions');
 
 const ERC777Token = artifacts.require('ERC777Token');
@@ -8,14 +8,14 @@ const EmitMessage = artifacts.require('EmitMessage');
 
 contract('EmitMessage', accounts => {
     var erc777Instance;
-    var erc820Instance;
+    var erc1820Instance;
     var instance;
 
     const granularity = web3.utils.toBN('10000000000000000');
     const initialSupply = granularity.mul(web3.utils.toBN('10000000'));
 
     it('sets up', async function() {
-        erc820Instance = await erc820.instance();
+        erc1820Instance = await erc1820.instance();
         erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
@@ -38,7 +38,7 @@ contract('EmitMessage', accounts => {
 
     it('generates messages accordingly', async function() {
         // Register the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
+        await erc1820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), instance.address, {
             from: accounts[1]
         });
 
@@ -108,7 +108,7 @@ contract('EmitMessage', accounts => {
         assert.equal(true, found);
 
         // Unregister the sender
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), '0x0000000000000000000000000000000000000000', {
+        await erc1820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensSender'), '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
     });

@@ -1,14 +1,14 @@
 'use strict';
 
 const assertRevert = require('../helpers/assertRevert.js');
-const erc820 = require('../helpers/erc820.js');
+const erc1820 = require('../helpers/erc1820.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
 const AllowSpecifiedTokens = artifacts.require('AllowSpecifiedTokens');
 
 contract('AllowSpecifiedTokens', accounts => {
     var erc777Instance;
-    var erc820Instance;
+    var erc1820Instance;
     var instance;
 
     let expectedBalances = [
@@ -31,7 +31,7 @@ contract('AllowSpecifiedTokens', accounts => {
     }
 
     it('sets up', async function() {
-        erc820Instance = await erc820.instance();
+        erc1820Instance = await erc1820.instance();
         erc777Instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
@@ -60,7 +60,7 @@ contract('AllowSpecifiedTokens', accounts => {
         await confirmBalances();
 
         // Register the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensRecipient'), instance.address, {
+        await erc1820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensRecipient'), instance.address, {
             from: accounts[1]
         });
 
@@ -103,7 +103,7 @@ contract('AllowSpecifiedTokens', accounts => {
         }
 
         // Unregister the recipient
-        await erc820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensRecipient'), '0x0000000000000000000000000000000000000000', {
+        await erc1820Instance.setInterfaceImplementer(accounts[1], web3.utils.soliditySha3('ERC777TokensRecipient'), '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
 

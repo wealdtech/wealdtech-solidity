@@ -3,7 +3,7 @@
 const sha3 = require('solidity-sha3').default;
 const truffleAssert = require('truffle-assertions');
 const asserts = require('../helpers/asserts.js');
-const erc820 = require('../helpers/erc820.js');
+const erc1820 = require('../helpers/erc1820.js');
 
 const ERC777Token = artifacts.require('ERC777Token');
 
@@ -16,18 +16,18 @@ contract('ERC777Token', accounts => {
 
     let tokenBalances = {};
 
-    it('confirms that ERC820 is deployed', async function() {
-        const erc820Instance = await erc820.instance();
-        await erc820Instance.setManager(accounts[0], accounts[1], {from: accounts[0]});
-        const ac1 = await erc820Instance.getManager(accounts[0]);
+    it('confirms that ERC1820 is deployed', async function() {
+        const erc1820Instance = await erc1820.instance();
+        await erc1820Instance.setManager(accounts[0], accounts[1], {from: accounts[0]});
+        const ac1 = await erc1820Instance.getManager(accounts[0]);
         assert.equal(ac1, accounts[1]);
-        await erc820Instance.setManager(accounts[0], '0x0000000000000000000000000000000000000000', {
+        await erc1820Instance.setManager(accounts[0], '0x0000000000000000000000000000000000000000', {
             from: accounts[1]
         });
-        const ac0 = await erc820Instance.getManager(accounts[0]);
+        const ac0 = await erc1820Instance.getManager(accounts[0]);
         assert.equal(ac0, accounts[0]);
         const hash = sha3("Test");
-        await erc820Instance.setInterfaceImplementer(accounts[0], hash, accounts[0]);
+        await erc1820Instance.setInterfaceImplementer(accounts[0], hash, accounts[0]);
     });
 
     it('instantiates the token', async function() {

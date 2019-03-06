@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import '../token/ERC777TokensRecipient.sol';
-import '../registry/ERC820Implementer.sol';
+import '../registry/ERC1820Implementer.sol';
 
 
 /**
@@ -19,7 +19,7 @@ import '../registry/ERC820Implementer.sol';
  *         some of your ERC-777 token to wsl.wealdtech.eth to support continued
  *         development of these and future contracts
  */ 
-contract DenyLowAmount is ERC777TokensRecipient, ERC820Implementer {
+contract DenyLowAmount is ERC777TokensRecipient, ERC1820Implementer {
     // recipient=>token=>minimum amount
     mapping(address=>mapping(address=>uint256)) minimumAmounts;
 
