@@ -281,7 +281,7 @@ contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
     function authorizeOperator(address _operator) external {
         require(_operator != msg.sender, "not allowed to set yourself as an operator");
         if (defaultOperatorsMap[_operator]) {
-            revokedDefaultOperators[msg.sender][_operator] = false;
+            delete revokedDefaultOperators[msg.sender][_operator];
         } else {
             operators[msg.sender][_operator] = true;
         }
@@ -378,9 +378,6 @@ contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
         // Ensure that the amount is a multiple of granularity
         require(amount % __granularity == 0, "amount must be a multiple of granularity");
 
-        // Ensure that there are enough tokens to send
-        require(amount <= store.balanceOf(from), "not enough tokens in holder's account");
-
         // Ensure that the operator is allowed to send
         require(operator == from || this.isOperatorFor(operator, from), "not allowed to send");
 
@@ -390,6 +387,10 @@ contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
             ERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, data, operatorData);
         }
 
+        // Ensure that there are enough tokens to send.  We do this after the token control contract is called as it is
+        // possible for that call to change account balances.
+        require(amount <= store.balanceOf(from), "not enough tokens in holder's account");
+
         // Transfer
         store.transfer(from, to, amount);
 
@@ -397,7 +398,7 @@ contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
         address recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
         if (recipientImplementation == address(0)) {
             // The target does not implement ERC777TokensRecipient
-            require(!isContract(to), "cannot send tokens to contract that does not explicitly receive them");
+            require(!isContract(to), "cannot send tokens to contract that does not explicitly accept them");
         } else {
             ERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, data, operatorData);
         }
@@ -406,12 +407,9 @@ contract ERC777Token is IERC777, ERC1820Client, ERC1820Implementer, Managed {
     }
 
     /**
-     * Check if an address is a contract
+     * Check if an address is a contract.
      */
     function isContract(address _addr) internal view returns(bool) {
-        if (_addr == address(0)) {
-            return false;
-        }
         uint size;
         assembly {
             size := extcodesize(_addr) 
