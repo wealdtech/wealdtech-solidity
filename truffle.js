@@ -6,6 +6,16 @@ module.exports = {
       network_id: "*" // Match any network id
     }
   },
+  compilers: {
+    solc: {
+      settings: {
+        optimizer: {
+          enabled: true,
+          runs: 200
+        }
+      }
+    }
+  },
   mocha: {
     useColors: true
   }

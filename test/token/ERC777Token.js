@@ -32,8 +32,7 @@ contract('ERC777Token', accounts => {
 
     it('instantiates the token', async function() {
         instance = await ERC777Token.new(1, 'Test token', 'TST', granularity, initialSupply, [], '0x0000000000000000000000000000000000000000', {
-            from: accounts[0],
-            gas: 10000000
+            from: accounts[0]
         });
         await instance.activate({
             from: accounts[0]
@@ -133,7 +132,7 @@ contract('ERC777Token', accounts => {
         await truffleAssert.reverts(
                 instance.send(contract.address, granularity, [], {
                     from: accounts[0]
-                }), 'cannot send tokens to contract that does not explicitly receive them');
+                }), 'cannot send tokens to contract that does not explicitly accept them');
     });
 
     it('carries out authorization of an operator', async function() {
