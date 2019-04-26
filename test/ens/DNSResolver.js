@@ -3,11 +3,9 @@ const MockEnsRegistrar = artifacts.require("MockEnsRegistrar");
 const DNSResolver = artifacts.require("DNSResolver");
 
 const assertRevert = require('../helpers/assertRevert');
+const evm = require('../helpers/evm.js');
 
 const sha3 = require('solidity-sha3').default;
-
-const increaseTime = addSeconds => web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_increaseTime", params: [addSeconds], id: 0 })
-const mine = () => web3.currentProvider.send({ jsonrpc: "2.0", method: "evm_mine", params: [], id: 0 })
 
 const ethLabelHash = sha3('eth');
 const ethNameHash = sha3('0x0000000000000000000000000000000000000000000000000000000000000000', ethLabelHash);
@@ -85,7 +83,7 @@ contract('DNSResolver', (accounts) => {
 
         await resolver.setDNSRecords(testDomainNameHash, rec, { from: testDomainOwner });
 
-        assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1), null);
+        assert.isNull(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('b.test1.eth.')), 1));
         assert.equal(await resolver.dnsRecord(testDomainNameHash, sha3(dnsName('test1.eth.')), 6), '0x05746573743103657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbf00003d0400000708001baf8000003840');
     })
 

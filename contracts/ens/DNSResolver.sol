@@ -1,6 +1,6 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.0;
 
-// Copyright © 2017,2018 Weald Technology Trading Limited
+// Copyright © 2017-2019 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -67,7 +67,7 @@ contract DNSResolver is PublicResolver {
 
     // DNSResolver requires the ENS registry to confirm ownership of nodes.
     constructor(AbstractENS _registry) public PublicResolver(_registry) {
-        require(address(_registry) != 0);
+        require(address(_registry) != address(0));
         registry = _registry;
     }
 
@@ -98,7 +98,7 @@ contract DNSResolver is PublicResolver {
      * @param _node the namehash of the node for which to set the records
      * @param _data the DNS wire format records to set
      */
-    function setDNSRecords(bytes32 _node, bytes _data) public onlyNodeOwner(_node) {
+    function setDNSRecords(bytes32 _node, bytes memory _data) public onlyNodeOwner(_node) {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
@@ -137,7 +137,7 @@ contract DNSResolver is PublicResolver {
                 }
             }
         }
-        rrData = _data.substring(offset, _data.length - offset);
+        bytes memory rrData = _data.substring(offset, _data.length - offset);
         if (value.length == 0) {
             if (records[_node][version][nameHash][resource].length != 0) {
                 nameEntriesCount[_node][version][nameHash]--;
@@ -160,7 +160,7 @@ contract DNSResolver is PublicResolver {
      * @param _resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
      * @return the DNS record in wire format if present, otherwise empty
      */
-    function dnsRecord(bytes32 _node, bytes32 _name, uint16 _resource) public view returns (bytes) {
+    function dnsRecord(bytes32 _node, bytes32 _name, uint16 _resource) public view returns (bytes memory) {
         return records[_node][versions[_node]][_name][_resource];
     }
 
@@ -182,3 +182,4 @@ contract DNSResolver is PublicResolver {
         emit Cleared(_node);
     }
 }
+

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.5.0;
 
 
 contract AbstractENS {
@@ -11,9 +11,9 @@ contract AbstractENS {
 
 contract Deed {
     address public registrar;
-    address constant BURN = 0xdead;
+    address payable constant BURN = address(0xdead);
     uint public creationDate;
-    address public owner;
+    address payable public owner;
     address public previousOwner;
     uint public value;
     event OwnerChanged(address newOwner);
@@ -30,7 +30,7 @@ contract Deed {
         _;
     }
 
-    constructor(address _owner) public payable {
+    constructor(address payable _owner) public payable {
         owner = _owner;
         registrar = msg.sender;
         creationDate = now;
@@ -38,8 +38,8 @@ contract Deed {
         value = msg.value;
     }
 
-    function setOwner(address newOwner) public onlyRegistrar {
-        require(newOwner != 0);
+    function setOwner(address payable newOwner) public onlyRegistrar {
+        require(newOwner != address(0));
         previousOwner = owner;  // This allows contracts to check who sent them the ownership
         owner = newOwner;
         emit OwnerChanged(newOwner);
@@ -127,7 +127,7 @@ contract MockEnsRegistrar {
         ens.setSubnodeOwner(rootNode, hash, msg.sender);
     }
 
-    function state(bytes32 hash) public constant returns (Mode) {
+    function state(bytes32 hash) public view returns (Mode) {
         if (_entries[hash].registrationDate > 0) {
             return Mode.Owned;
         } else {
@@ -135,17 +135,17 @@ contract MockEnsRegistrar {
         }
     }
 
-    function entries(bytes32 hash) public constant returns (Mode, address, uint, uint, uint) {
+    function entries(bytes32 hash) public view returns (Mode, address, uint, uint, uint) {
         Entry storage h = _entries[hash];
-        return (state(hash), h.deed, h.registrationDate, h.value, h.highestBid);
+        return (state(hash), address(h.deed), h.registrationDate, h.value, h.highestBid);
     }
 
-    function deed(bytes32 hash) public constant returns (address) {
-        return _entries[hash].deed;
+    function deed(bytes32 hash) public view returns (address) {
+        return address(_entries[hash].deed);
     }
 
-    function transfer(bytes32 hash, address newOwner) onlyOwner(hash) public {
-        require(newOwner != 0);
+    function transfer(bytes32 hash, address payable newOwner) onlyOwner(hash) public {
+        require(newOwner != address(0));
 
         _entries[hash].deed.setOwner(newOwner);
         ens.setSubnodeOwner(rootNode, hash, newOwner);
@@ -166,8 +166,8 @@ contract MockEnsRegistrar {
         if (ens.owner(rootNode) == address(this)) {
             ens.setSubnodeOwner(rootNode, label, address(this));
             bytes32 node = keccak256(abi.encodePacked(rootNode, label));
-            ens.setResolver(node, 0);
-            ens.setOwner(node, 0);
+            ens.setResolver(node, address(0));
+            ens.setOwner(node, address(0));
         }
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.5.0;
 
 import './IERC20.sol';
 import '../auth/Authorised.sol';
@@ -49,9 +49,9 @@ contract ERC20Token is IERC20, Authorised, Managed {
     using SafeMath for uint256;
 
     // Definition for the token
-    string public name;
-    string public symbol;
-    uint8 public decimals;
+    string private __name;
+    string private __symbol;
+    uint8 private __decimals;
     // The store for this token's allowances and allocations
     DividendTokenStore public store;
 
@@ -87,18 +87,18 @@ contract ERC20Token is IERC20, Authorised, Managed {
      *        you want 100 tokens with 3 decimal places you would create 100000 tokens (100 * 10^3)
      * @param _store a pre-existing dividend token store (set to 0 if no pre-existing token store)
      */
-    constructor(uint256 _version, string _name, string _symbol, uint8 _decimals, uint256 _totalSupply, address _store)
+    constructor(uint256 _version, string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply, address _store)
       Managed(_version)
       public
     {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-        if (_store == 0) {
+        __name = _name;
+        __symbol = _symbol;
+        __decimals = _decimals;
+        if (_store == address(0)) {
             store = new DividendTokenStore();
             if (_totalSupply > 0) {
                 store.mint(msg.sender, _totalSupply);
-                emit Transfer(0, msg.sender, store.totalSupply());
+                emit Transfer(address(0), msg.sender, store.totalSupply());
             }
         } else {
             store = DividendTokenStore(_store);
@@ -109,23 +109,23 @@ contract ERC20Token is IERC20, Authorised, Managed {
      * @dev Fallback
      *      This contract does not accept funds, so revert
      */
-    function () public payable {
+    function () external {
         revert();
     }
 
-    function name() public constant ifInState(State.Active) returns (string) {
-        return name;
+    function name() public view ifInState(State.Active) returns (string memory) {
+        return __name;
     }
 
-    function symbol() public constant ifInState(State.Active) returns (string) {
-        return symbol;
+    function symbol() public view ifInState(State.Active) returns (string memory) {
+        return __symbol;
     }
 
-    function decimals() public constant ifInState(State.Active) returns (uint8) {
-        return decimals;
+    function decimals() public view ifInState(State.Active) returns (uint8) {
+        return __decimals;
     }
 
-    function totalSupply() public constant ifInState(State.Active) returns (uint256) {
+    function totalSupply() public view ifInState(State.Active) returns (uint256) {
         return store.totalSupply();
     }
 
@@ -152,7 +152,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
      *       Note that due to the packing the range of the value is restricted;
      *       very large transfers may not be able to be sent with this method.
      */
-    function bulkTransfer(uint256[] data) public ifInState(State.Active) {
+    function bulkTransfer(uint256[] memory data) public ifInState(State.Active) {
         uint256 len = data.length;
         for (uint256 i = 0; i < len; i++) {
             transfer(address(data[i] & ADDRESS_MASK), data[i] >> 160);
@@ -178,7 +178,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
      * @param _nonce a unique number to avoid replay attacks
      * @param _signature the signature as described above
      */
-    function transferTP(address _sender, address _recipient, uint256 _value, uint256 _nonce, bytes _signature) public sync(_sender) sync(_recipient) ifInState(State.Active) returns (bool) {
+    function transferTP(address _sender, address _recipient, uint256 _value, uint256 _nonce, bytes memory _signature) public sync(_sender) sync(_recipient) ifInState(State.Active) returns (bool) {
         // Authorise if the signature is either specific to this recipient or for anyone
         require(authorise(keccak256(abi.encodePacked(address(this), _sender, _recipient, _value, _nonce)), _signature, false));
         require(_recipient != address(this));
@@ -205,7 +205,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
      */
     function mint(uint256 _amount) public sync(msg.sender) ifPermitted(msg.sender, PERM_MINT) ifInState(State.Active) {
         store.mint(msg.sender, _amount);
-        emit Transfer(0, msg.sender, _amount);
+        emit Transfer(address(0), msg.sender, _amount);
         emit Mint(msg.sender, _amount);
     }
 
@@ -215,7 +215,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
      */
     function burn(uint256 _amount) public sync(msg.sender) ifInState(State.Active) {
         store.burn(msg.sender, _amount);
-        emit Transfer(msg.sender, 0, _amount);
+        emit Transfer(msg.sender, address(0), _amount);
         emit Burn(msg.sender, _amount);
     }
 
@@ -230,11 +230,11 @@ contract ERC20Token is IERC20, Authorised, Managed {
         return true;
     }
 
-    function balanceOf(address _owner) public constant ifInState(State.Active) returns (uint256) {
+    function balanceOf(address _owner) public view ifInState(State.Active) returns (uint256) {
         return store.balanceOf(_owner);
     }
 
-    function allowance(address _owner, address _recipient) public constant ifInState(State.Active) returns (uint256) {
+    function allowance(address _owner, address _recipient) public view ifInState(State.Active) returns (uint256) {
         return store.allowanceOf(_owner, _recipient);
     }
 
@@ -278,7 +278,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
      */
     function commitUpgrade() public ifPermitted(msg.sender, PERM_UPGRADE) ifInState(State.Upgraded) {
         // Remove ourself from the list of superusers of the token store
-        store.setPermission(this, PERM_SUPERUSER, false);
+        store.setPermission(address(this), PERM_SUPERUSER, false);
         super.commitUpgrade();
     }
 
@@ -289,7 +289,7 @@ contract ERC20Token is IERC20, Authorised, Managed {
         // Remove the contract from the list of superusers of the token store.
         // Note that if this is called after commitUpgrade() then it will fail
         // as we will no longer have permission to do this.
-        if (supercededBy != 0) {
+        if (supercededBy != address(0)) {
             store.setPermission(supercededBy, PERM_SUPERUSER, false);
         }
         super.revertUpgrade();

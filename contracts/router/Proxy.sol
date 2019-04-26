@@ -1,10 +1,10 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 
 contract Proxy {
     address public target;
 
-    function () public payable {
+    function () external payable {
         address _target = target;
         assembly {
           let _calldata := mload(0x40)

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.5.0;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +49,7 @@ contract ITokenStore is Permissioned {
     /**
      * @dev Obtain a balance.
      */
-    function balanceOf(address _account) public constant returns (uint256);
+    function balanceOf(address _account) public view returns (uint256);
 
     /**
      * @dev Set an allowance for a (sender, recipient) pair
@@ -77,7 +77,7 @@ contract ITokenStore is Permissioned {
      *      address can pay a certain amount it is important to check using
      *      both the values obtain from this and balanceOf().
      */
-    function allowanceOf(address _owner, address _recipient) public constant returns (uint256);
+    function allowanceOf(address _owner, address _recipient) public view returns (uint256);
 
     /**
      * @dev Add a token dividend.

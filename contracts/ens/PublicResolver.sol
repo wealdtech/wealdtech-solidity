@@ -1,4 +1,4 @@
-pragma solidity ^0.4.0;
+pragma solidity ^0.5.0;
 
 import './AbstractENS.sol';
 
@@ -72,7 +72,7 @@ contract PublicResolver {
      * @param node The ENS node to query.
      * @return The associated address.
      */
-    function addr(bytes32 node) public constant returns (address ret) {
+    function addr(bytes32 node) public view returns (address ret) {
         ret = records[node].addr;
     }
 
@@ -94,7 +94,7 @@ contract PublicResolver {
      * @param node The ENS node to query.
      * @return The associated content hash.
      */
-    function content(bytes32 node) public constant returns (bytes32 ret) {
+    function content(bytes32 node) public view returns (bytes32 ret) {
         ret = records[node].content;
     }
 
@@ -117,7 +117,7 @@ contract PublicResolver {
      * @param node The ENS node to query.
      * @return The associated name.
      */
-    function name(bytes32 node) public constant returns (string ret) {
+    function name(bytes32 node) public view returns (string memory ret) {
         ret = records[node].name;
     }
     
@@ -127,7 +127,7 @@ contract PublicResolver {
      * @param _node The node to update.
      * @param _name The name to set.
      */
-    function setName(bytes32 _node, string _name) public only_owner(_node) {
+    function setName(bytes32 _node, string memory _name) public only_owner(_node) {
         records[_node].name = _name;
         emit NameChanged(_node, _name);
     }
@@ -140,11 +140,11 @@ contract PublicResolver {
      * @return contentType The content type of the return value
      * @return data The ABI data
      */
-    function ABI(bytes32 node, uint256 contentTypes) public constant returns (uint256 contentType, bytes data) {
+    function ABI(bytes32 node, uint256 contentTypes) public view returns (uint256 contentType, bytes memory data) {
         for(contentType = 1; contentType <= contentTypes; contentType <<= 1) {
             if ((contentType & contentTypes) != 0 && records[node].abis[contentType].length > 0) {
                 data = records[node].abis[contentType];
-                return;
+                return (contentType, data);
             }
         }
         contentType = 0;
@@ -158,7 +158,7 @@ contract PublicResolver {
      * @param _contentType The content type of the ABI
      * @param _data The ABI data.
      */
-    function setABI(bytes32 _node, uint256 _contentType, bytes _data) public only_owner(_node) {
+    function setABI(bytes32 _node, uint256 _contentType, bytes memory _data) public only_owner(_node) {
         // Content types must be powers of 2
         require(((_contentType - 1) & _contentType) == 0);
         
@@ -172,7 +172,7 @@ contract PublicResolver {
      * @param node The ENS node to query
      * @return x, y the X and Y coordinates of the curve point for the public key.
      */
-    function pubkey(bytes32 node) public constant returns (bytes32 x, bytes32 y) {
+    function pubkey(bytes32 node) public view returns (bytes32 x, bytes32 y) {
         return (records[node].pubkey.x, records[node].pubkey.y);
     }
     
@@ -193,7 +193,7 @@ contract PublicResolver {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function text(bytes32 node, string key) public constant returns (string ret) {
+    function text(bytes32 node, string memory key) public view returns (string memory ret) {
         ret = records[node].text[key];
     }
 
@@ -204,7 +204,7 @@ contract PublicResolver {
      * @param _key The key to set.
      * @param _value The text data value to set.
      */
-    function setText(bytes32 _node, string _key, string _value) public only_owner(_node) {
+    function setText(bytes32 _node, string memory _key, string memory _value) public only_owner(_node) {
         records[_node].text[_key] = _value;
         emit TextChanged(_node, _key, _key);
     }

@@ -89,7 +89,7 @@ contract('Permissioned Storage', accounts => {
     const result2 = await instance.getAddress(key, { from: accounts[0] });
     assert.equal(result2, value);
 
-    await instance.setAddress(key, 0, { from: accounts[0] });
+    await instance.setAddress(key, '0x0000000000000000000000000000000000000000', { from: accounts[0] });
     const result3 = await instance.getAddress(key, { from: accounts[0] });
     assert.equal(result3, 0);
   });

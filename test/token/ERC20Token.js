@@ -15,7 +15,7 @@ contract('ERC20Token', accounts => {
     let expectedBalances = [10000,0,0,0,0,0,0,0,0,0]
 
     it('has an initial balance', async function() {
-        instance = await ERC20Token.new(1, 'Test token', 'TST', 2, 10000, 0, {
+        instance = await ERC20Token.new(1, 'Test token', 'TST', 2, '10000', '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });
@@ -133,7 +133,7 @@ contract('ERC20Token', accounts => {
     it('can carry out a third-party transfer', async function() {
         // User who wants to allow the third-party transfer signs an appropriate message
         const dataHash = sha3(instance.address, accounts[0], accounts[1], '0x00000000000000000000000000000000000000000000000000000000000003E8', '0x0000000000000000000000000000000000000000000000000000000000000001');
-        const signature = await web3.eth.sign(accounts[0], dataHash);
+        const signature = await web3.eth.sign(dataHash, accounts[0]);
 
         // Ensure that the transaction can be submitted by an account with no relationship to the sender or recipient
         await instance.transferTP(accounts[0], accounts[1], 1000, 1, signature, {
@@ -158,7 +158,7 @@ contract('ERC20Token', accounts => {
 
     it('can upgrade to a new contract', async function() {
         oldInstance = instance;
-        instance = await ERC20Token.new(2, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        instance = await ERC20Token.new(2, 'Test token', 'TST', 2, '10000', await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
@@ -205,7 +205,7 @@ contract('ERC20Token', accounts => {
 
     it('can upgrade again', async function() {
         oldInstance = instance;
-        instance = await ERC20Token.new(3, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        instance = await ERC20Token.new(3, 'Test token', 'TST', 2, '10000', await oldInstance.store(), {
             from: accounts[2],
             gas: 10000000
         });
@@ -236,7 +236,7 @@ contract('ERC20Token', accounts => {
     });
 
     it('cannot be upgraded by someone else', async function() {
-        var fakeInstance = await ERC20Token.new(4, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        var fakeInstance = await ERC20Token.new(4, 'Test token', 'TST', 2, '10000', await oldInstance.store(), {
             from: accounts[1],
             gas: 10000000
         });
@@ -254,7 +254,7 @@ contract('ERC20Token', accounts => {
     });
 
     it('cannot be sidegraded', async function() {
-        var sideInstance = await ERC20Token.new(3, 'Test token', 'TST', 2, 10000, await oldInstance.store(), {
+        var sideInstance = await ERC20Token.new(3, 'Test token', 'TST', 2, '10000', await oldInstance.store(), {
             from: accounts[2],
             gas: 10000000
         });
@@ -280,7 +280,7 @@ contract('Dividend Token', accounts => {
     let expectedBalances = [60000, 10000, 10000];
 
     it('has an initial balance', async function() {
-        instance = await ERC20Token.new(1, 'Test token', 'TST', 3, 80000, 0, {
+        instance = await ERC20Token.new(1, 'Test token', 'TST', 3, '80000', '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });
@@ -428,23 +428,23 @@ contract('Dividend Token', accounts => {
 contract('Realistic Dividend Token', accounts => {
     // Pretend to be an ether-like token
     // 1,000,000 * 10^18
-    var total = web3.toWei('1000000', 'ether');
+    var total = web3.utils.toWei('1000000', 'ether');
     var instance;
 
-    let expectedBalances = [web3.toWei('996000', 'ether'), web3.toWei('2000', 'ether'), web3.toWei('2000', 'ether')]
+    let expectedBalances = [web3.utils.toWei('996000', 'ether'), web3.utils.toWei('2000', 'ether'), web3.utils.toWei('2000', 'ether')]
 
     it('has an initial balance', async function() {
-        instance = await ERC20Token.new(1, 'Test token', 'TST', 18, 1000000000000000000000000, 0, {
+        instance = await ERC20Token.new(1, 'Test token', 'TST', 18, '1000000000000000000000000', '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });
         await instance.activate({
             from: accounts[0]
         });
-        await instance.transfer(accounts[1], web3.toWei('2000', 'ether'), {
+        await instance.transfer(accounts[1], web3.utils.toWei('2000', 'ether'), {
             from: accounts[0]
         });
-        await instance.transfer(accounts[2], web3.toWei('2000', 'ether'), {
+        await instance.transfer(accounts[2], web3.utils.toWei('2000', 'ether'), {
             from: accounts[0]
         });
 

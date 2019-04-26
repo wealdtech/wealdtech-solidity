@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.5.0;
 
 // Copyright © 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -154,7 +154,7 @@ contract ParticipatoryRandom {
      * @param _values the values supplied by the parties.
      * @return the random value.
      */
-    function generateRandomValue(uint256 _instanceId, address[] _parties, uint256 _round, bytes32[] _values) public view returns (bytes32) {
+    function generateRandomValue(uint256 _instanceId, address[] memory _parties, uint256 _round, bytes32[] memory _values) public view returns (bytes32) {
         require(rounds[_instanceId] != 0);
         require(_round > 0);
         require(_round <= rounds[_instanceId]);

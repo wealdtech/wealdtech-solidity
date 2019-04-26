@@ -1,4 +1,4 @@
-pragma solidity ^0.4.0;
+pragma solidity ^0.5.0;
 
 import './AbstractENS.sol';
 
@@ -30,21 +30,21 @@ contract ENS is AbstractENS {
     /**
      * Returns the address that owns the specified node.
      */
-    function owner(bytes32 node) public constant returns (address) {
+    function owner(bytes32 node) public view returns (address) {
         return records[node].owner;
     }
 
     /**
      * Returns the address of the resolver for the specified node.
      */
-    function resolver(bytes32 node) public constant returns (address) {
+    function resolver(bytes32 node) public view returns (address) {
         return records[node].resolver;
     }
 
     /**
      * Returns the TTL of a node, and any records associated with it.
      */
-    function ttl(bytes32 node) public constant returns (uint64) {
+    function ttl(bytes32 node) public view returns (uint64) {
         return records[node].ttl;
     }
 
@@ -67,7 +67,7 @@ contract ENS is AbstractENS {
      * @param _owner The address of the new owner.
      */
     function setSubnodeOwner(bytes32 _node, bytes32 _label, address _owner) public only_owner(_node) {
-        bytes32 subnode = keccak256(_node, _label);
+        bytes32 subnode = keccak256(abi.encodePacked(_node, _label));
         emit NewOwner(_node, _label, _owner);
         records[subnode].owner = _owner;
     }

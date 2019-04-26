@@ -1,4 +1,4 @@
-pragma solidity ^0.4.11;
+pragma solidity ^0.5.0;
 
 // Copyright © 2017 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,10 +34,10 @@ contract ITokenAgent {
     /**
      * @dev active states if the agent is currently active.
      */ 
-    function active() public constant returns (bool);
+    function active() public view returns (bool);
 
     /**
      * @dev provide the number of tokens available.
      */
-    function tokensAvailable() public constant returns (uint256);
+    function tokensAvailable() public view returns (uint256);
 }

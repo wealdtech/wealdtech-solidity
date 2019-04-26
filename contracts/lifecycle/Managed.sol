@@ -1,6 +1,6 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.5.0;
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017, 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -196,7 +196,7 @@ contract Managed is Permissioned {
      *        unpaused.
      */
     function setPausedUntil(uint256 _pausedUntil) public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Paused) {
-        require(_pausedUntil > block.timestamp);
+        require(_pausedUntil > block.timestamp, "cannot pause to the past");
         pausedUntil = _pausedUntil;
         emit PausedUntil(pausedUntil);
     }
@@ -234,7 +234,7 @@ contract Managed is Permissioned {
      *      This carries out the upgrade to the new contract.
      */
     function upgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Active) {
-        require(supercededBy != 0);
+        require(supercededBy != address(0), "no superceded address");
         // Mark this contract as upgraded
         currentState = State.Upgraded;
         emit StateChange(State.Upgraded);
@@ -257,7 +257,7 @@ contract Managed is Permissioned {
      */
     function revertUpgrade() public ifPermitted(msg.sender, PERM_MANAGE_LIFECYCLE) ifInState(State.Upgraded) {
         currentState = State.Active;
-        supercededBy = 0;
+        supercededBy = address(0);
         emit StateChange(State.Active);
     }
 }

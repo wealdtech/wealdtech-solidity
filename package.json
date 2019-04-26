@@ -4,11 +4,14 @@
   "version": "0.9.8",
   "devDependencies": {
     "mocha": "^5.2.0",
-    "solidity-sha3": "^0.4.1"
+    "solidity-sha3": "^0.4.1",
+    "merkletreejs": "^0.0.18"
   },
   "dependencies": {
     "ens": "0.0.1",
+    "erc1820": "0.0.2",
     "truffle": "^4.1.14",
+    "truffle-assertions": "^0.6.3",
     "openzeppelin-solidity": "^1.12.0"
   }
 }

@@ -4,10 +4,6 @@ const assertRevert = require('../helpers/assertRevert');
 const ERC20Token = artifacts.require('./ERC20Token.sol');
 const BulkTransfer = artifacts.require('./BulkTransfer.sol');
 
-function pack(addr, value) {
-    return '0x' + ('000000000000000000000000' + value.toString(16)).slice(-24) + addr.slice(2);
-}
-
 contract('BulkTransfer', accounts => {
     var token;
     var bulkTransfer;
@@ -15,7 +11,7 @@ contract('BulkTransfer', accounts => {
     let expectedBalance0 = 100000000000000000000000000;
 
     it('has an initial balance', async function() {
-        token = await ERC20Token.new(1, 'Test token', 'TST', 18, 100000000000000000000000000, 0, {
+        token = await ERC20Token.new(1, 'Test token', 'TST', 18, '100000000000000000000000000', '0x0000000000000000000000000000000000000000', {
             from: accounts[0],
             gas: 10000000
         });

@@ -1,7 +1,7 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.5.0;
 
 
-// Copyright © 2017 Weald Technology Trading Limited
+// Copyright © 2017, 2018 Weald Technology Trading Limited
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -72,7 +72,7 @@ contract Permissioned {
     /**
      * @dev query a permission for an address.
      */
-    function isPermitted(address addr, bytes32 permission) public constant returns (bool) {
+    function isPermitted(address addr, bytes32 permission) public view returns (bool) {
         return(permissions[addr][permission] || permissions[addr][PERM_SUPERUSER]);
     }
 

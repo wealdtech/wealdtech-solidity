@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.5.0;
 
 import '../../contracts/auth/Authorised.sol';
 
@@ -15,7 +15,7 @@ contract AuthorisedTest1 is Authorised {
     }
 
     event Mark(bool);
-    function setInt(uint256 _intValue, bytes _signature) public {
+    function setInt(uint256 _intValue, bytes memory _signature) public {
         // check general authorisation
         if (!authorise(keccak256(abi.encodePacked(msg.sender, ACTION_SET_INT)), _signature, true)) {
             // check single-use authorisation
