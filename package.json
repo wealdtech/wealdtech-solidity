@@ -1,15 +1,16 @@
 {
   "name": "wealdtech-solidity",
   "description": "Solidity contracts provided by Wealdtech",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "devDependencies": {
     "mocha": "^5.2.0",
     "solidity-sha3": "^0.4.1",
     "merkletreejs": "^0.0.18"
   },
   "dependencies": {
-    "ens": "0.0.1",
     "erc1820": "0.0.2",
+    "@ensdomains/ens": "0.3.0",
+    "@ensdomains/resolver": "0.1.6",
     "truffle": "^4.1.14",
     "truffle-assertions": "^0.6.3",
     "openzeppelin-solidity": "^1.12.0"

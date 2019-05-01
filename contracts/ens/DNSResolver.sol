@@ -13,9 +13,9 @@ pragma solidity ^0.5.0;
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import './PublicResolver.sol';
+import '@ensdomains/resolver/contracts/PublicResolver.sol';
+import '@ensdomains/ens/contracts/ENS.sol';
 import './RRUtils.sol';
-import './AbstractENS.sol';
 
 
 /**
@@ -57,7 +57,7 @@ contract DNSResolver is PublicResolver {
     mapping(bytes32=>mapping(uint16=>mapping(bytes32=>uint16))) public nameEntriesCount;
 
     // The ENS registry.
-    AbstractENS registry;
+    ENS registry;
 
     // Restrict operations to the owner of the relevant ENS node.
     modifier onlyNodeOwner(bytes32 node) {
@@ -66,7 +66,7 @@ contract DNSResolver is PublicResolver {
     }
 
     // DNSResolver requires the ENS registry to confirm ownership of nodes.
-    constructor(AbstractENS _registry) public PublicResolver(_registry) {
+    constructor(ENS _registry) public PublicResolver(_registry) {
         require(address(_registry) != address(0));
         registry = _registry;
     }
@@ -182,4 +182,3 @@ contract DNSResolver is PublicResolver {
         emit Cleared(_node);
     }
 }
-

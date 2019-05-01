@@ -28,7 +28,7 @@ library Buffer {
     function init(buffer memory buf, uint capacity) internal pure returns(buffer memory) {
         if(capacity % 32 != 0) capacity += 32 - (capacity % 32);
         // Allocate space for the buffer data
-        buf.capacity = capacity;
+        buf.capacity = capacity + 32;
         assembly {
             let ptr := mload(0x40)
             mstore(buf, ptr)
