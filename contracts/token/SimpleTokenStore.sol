@@ -36,6 +36,7 @@ import './ITokenStore.sol';
  *        This contract has individual permissions for each major operation.
  *        These are:
  *          - PERM_MINT: permission to mint new tokens
+ *          - PERM_BURN: permission to burn existing tokens
  *          - PERM_TRANSFER: permission to transfer tokens from own holder to
  *                           another regardless of allowance
  *          - PERM_SET_ALLOWANCE: permission to set the number of tokens allowed
@@ -64,6 +65,7 @@ contract SimpleTokenStore is ITokenStore {
 
     // Permissions for each operation
     bytes32 internal constant PERM_MINT = keccak256("token storage: mint");
+    bytes32 internal constant PERM_BURN = keccak256("token storage: burn");
     bytes32 internal constant PERM_DISBALE_MINTING = keccak256("token storage: disable minting");
     bytes32 internal constant PERM_TRANSFER = keccak256("token storage: transfer");
     bytes32 internal constant PERM_SET_ALLOWANCE = keccak256("token storage: set allowance");
@@ -104,7 +106,7 @@ contract SimpleTokenStore is ITokenStore {
     /**
      * @dev Burn tokens and remove them from the total supply
      */
-    function burn(address _holder, uint256 _amount) public {
+    function burn(address _holder, uint256 _amount) public ifPermitted(msg.sender, PERM_BURN) {
         balances[_holder] = balances[_holder].sub(_amount);
         totalSupply = totalSupply.sub(_amount);
     }
