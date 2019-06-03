@@ -1,7 +1,7 @@
 {
   "name": "wealdtech-solidity",
   "description": "Solidity contracts provided by Wealdtech",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "devDependencies": {
     "mocha": "^5.2.0",
     "solidity-sha3": "^0.4.1",
