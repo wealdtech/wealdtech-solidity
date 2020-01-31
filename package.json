@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "erc1820": "0.0.2",
-    "@ensdomains/ens": "0.3.0",
+    "@ensdomains/ens": "0.4.0",
     "@ensdomains/resolver": "0.1.6",
     "truffle": "^4.1.14",
     "truffle-assertions": "^0.6.3",
